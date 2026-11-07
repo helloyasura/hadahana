@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+!README.md
+!docs/DEPLOY.md
+.env*
+!.env.example
+coverage
+playwright-report
+test-results
+data/name-feedback.json
+**/*.tmp
+.turbo
+.DS_Store

@@ -1,0 +1,19 @@
+{
+  "productKey": "HANDAHANA",
+  "slug": "hadahana",
+  "name": "Handahana Studio",
+  "nameSi": "හඳහන ස්ටූඩියෝ",
+  "tagline": "Sri Lankan Kendraya & Handahana workspace",
+  "taglineSi": "ශ්‍රී ලාංකික කේන්ද්‍ර සහ හඳහන වැඩබිම",
+  "launchUrl": "https://ervanta.com/hadahana",
+  "pathPrefix": "/hadahana",
+  "category": "astrology",
+  "access": "marketplace",
+  "status": "live",
+  "features": [
+    "Kendraya cast (Lahiri)",
+    "Nam Thebima + Name Studio",
+    "Event nakath / muhurta finder",
+    "Sinhala + English"
+  ]
+}

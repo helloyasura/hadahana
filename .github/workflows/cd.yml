@@ -1,0 +1,204 @@
+name: CD
+
+# Deploys Compose project `handahana` to /opt/handahana ONLY.
+# Never stops or reconfigures lums-docker, govflow, bizflow, PM2, or host nginx.
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: hadahana-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  COMPOSE_PROJECT_NAME: handahana
+
+jobs:
+  build-and-push:
+    name: Build Hadahana image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.vars.outputs.tag }}
+      owner: ${{ steps.vars.outputs.owner }}
+      image: ${{ steps.vars.outputs.image }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Image coordinates
+        id: vars
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          tag="${GITHUB_SHA::12}"
+          echo "owner=${owner}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "image=${{ env.REGISTRY }}/${owner}/hadahana:${tag}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner }}/hadahana
+          tags: |
+            type=raw,value=${{ steps.vars.outputs.tag }}
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_BASE_PATH=/hadahana
+            CACHEBUST=${{ steps.vars.outputs.tag }}
+          cache-from: type=gha,scope=hadahana
+          cache-to: type=gha,mode=max,scope=hadahana
+
+  deploy:
+    name: Deploy handahana stack only
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: droplet
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Require SSH secrets
+        env:
+          HOST: ${{ secrets.DROPLET_HOST || vars.DROPLET_HOST || secrets.GOVFLOW_SSH_HOST }}
+          SSH_USER: ${{ secrets.GOVFLOW_SSH_USER || vars.GOVFLOW_SSH_USER }}
+          SSH_KEY: ${{ secrets.GOVFLOW_SSH_KEY }}
+        run: |
+          if [ -z "$HOST" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_KEY" ]; then
+            echo "Missing SSH credentials on GitHub Environment 'droplet'."
+            echo "Required: DROPLET_HOST (or GOVFLOW_SSH_HOST), GOVFLOW_SSH_USER, GOVFLOW_SSH_KEY"
+            exit 1
+          fi
+          echo "Hadahana deploy target host is set."
+
+      - name: Ensure /opt/handahana exists
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_HOST || vars.DROPLET_HOST || secrets.GOVFLOW_SSH_HOST }}
+          username: ${{ secrets.GOVFLOW_SSH_USER || vars.GOVFLOW_SSH_USER }}
+          key: ${{ secrets.GOVFLOW_SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || vars.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            mkdir -p "${{ secrets.HANDAHANA_DEPLOY_PATH || vars.HANDAHANA_DEPLOY_PATH || '/opt/handahana' }}/scripts"
+            mkdir -p "${{ secrets.HANDAHANA_DEPLOY_PATH || vars.HANDAHANA_DEPLOY_PATH || '/opt/handahana' }}/deploy"
+
+      - name: Render .env bootstrap
+        env:
+          OPENAI_API_KEY: ${{ secrets.HANDAHANA_OPENAI_API_KEY || secrets.OPENAI_API_KEY || vars.HANDAHANA_OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.HANDAHANA_OPENAI_MODEL || 'gpt-4.1-mini' }}
+          HANDAHANA_IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          cat > .env.bootstrap <<EOF
+          NEXT_PUBLIC_BASE_PATH=/hadahana
+          HANDAHANA_BIND_ADDRESS=127.0.0.1
+          HANDAHANA_PORT=4132
+          HANDAHANA_IMAGE=${HANDAHANA_IMAGE}
+          OPENAI_API_KEY=${OPENAI_API_KEY:-}
+          OPENAI_MODEL=${OPENAI_MODEL}
+          EOF
+          sed -i 's/^[[:space:]]*//' .env.bootstrap
+          test -s .env.bootstrap
+
+      - name: Stage deploy bundle + export image
+        env:
+          HANDAHANA_IMAGE: ${{ needs.build-and-push.outputs.image }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p hadahana-bundle/scripts hadahana-bundle/deploy hadahana-bundle/marketplace
+          cp docker-compose.yml hadahana-bundle/
+          cp scripts/remote-deploy.sh hadahana-bundle/scripts/
+          cp deploy/nginx-hadahana.conf.example hadahana-bundle/deploy/
+          cp .env.example hadahana-bundle/
+          cp .env.bootstrap hadahana-bundle/
+          cp marketplace/ervanta-app.json hadahana-bundle/marketplace/
+          chmod +x hadahana-bundle/scripts/remote-deploy.sh
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          docker pull "$HANDAHANA_IMAGE"
+          docker save "$HANDAHANA_IMAGE" | gzip -1 > hadahana-bundle/handahana-images.tar.gz
+          ls -lh hadahana-bundle/
+
+      - name: Copy bundle to droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_HOST || vars.DROPLET_HOST || secrets.GOVFLOW_SSH_HOST }}
+          username: ${{ secrets.GOVFLOW_SSH_USER || vars.GOVFLOW_SSH_USER }}
+          key: ${{ secrets.GOVFLOW_SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || vars.SSH_PORT || 22 }}
+          source: "hadahana-bundle"
+          target: ${{ secrets.HANDAHANA_DEPLOY_PATH || vars.HANDAHANA_DEPLOY_PATH || '/opt/handahana' }}
+          strip_components: 1
+          overwrite: true
+
+      - name: Bootstrap .env if missing
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_HOST || vars.DROPLET_HOST || secrets.GOVFLOW_SSH_HOST }}
+          username: ${{ secrets.GOVFLOW_SSH_USER || vars.GOVFLOW_SSH_USER }}
+          key: ${{ secrets.GOVFLOW_SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || vars.SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.HANDAHANA_DEPLOY_PATH || vars.HANDAHANA_DEPLOY_PATH || '/opt/handahana' }}"
+            cd "$DEPLOY_PATH"
+            if [[ ! -f .env ]]; then
+              if [[ -f .env.bootstrap ]]; then
+                cp .env.bootstrap .env
+              else
+                cp .env.example .env
+              fi
+            fi
+            if [[ -f .env.bootstrap ]]; then
+              grep -E '^HANDAHANA_IMAGE=' .env.bootstrap > .env.imagepin
+              grep -v '^HANDAHANA_IMAGE=' .env > .env.noid || true
+              cat .env.noid .env.imagepin > .env
+              rm -f .env.noid .env.imagepin
+            fi
+
+      - name: Load image and up handahana only
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_HOST || vars.DROPLET_HOST || secrets.GOVFLOW_SSH_HOST }}
+          username: ${{ secrets.GOVFLOW_SSH_USER || vars.GOVFLOW_SSH_USER }}
+          key: ${{ secrets.GOVFLOW_SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || vars.SSH_PORT || 22 }}
+          command_timeout: 25m
+          script_stop: true
+          envs: HANDAHANA_IMAGE,DEPLOY_PATH,HANDAHANA_IMAGE_ARCHIVE
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${DEPLOY_PATH:-/opt/handahana}"
+            chmod +x "${DEPLOY_PATH}/scripts/remote-deploy.sh"
+            export HANDAHANA_IMAGE
+            export HANDAHANA_IMAGE_ARCHIVE="${HANDAHANA_IMAGE_ARCHIVE}"
+            export NEXT_PUBLIC_BASE_PATH=/hadahana
+            export HANDAHANA_PORT=4132
+            "${DEPLOY_PATH}/scripts/remote-deploy.sh"
+            rm -f "${HANDAHANA_IMAGE_ARCHIVE:-}"
+        env:
+          HANDAHANA_IMAGE: ${{ needs.build-and-push.outputs.image }}
+          DEPLOY_PATH: ${{ secrets.HANDAHANA_DEPLOY_PATH || vars.HANDAHANA_DEPLOY_PATH || '/opt/handahana' }}
+          HANDAHANA_IMAGE_ARCHIVE: ${{ secrets.HANDAHANA_DEPLOY_PATH || vars.HANDAHANA_DEPLOY_PATH || '/opt/handahana' }}/handahana-images.tar.gz

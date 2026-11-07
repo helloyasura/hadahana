@@ -1,0 +1,1814 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #14221c;
+  --ink-soft: #3a4a42;
+  --paper: #f3efe6;
+  --paper-2: #e7efe8;
+  --leaf: #1f5c45;
+  --leaf-deep: #0e3326;
+  --gold: #b8892d;
+  --gold-soft: #d4b56a;
+  --mist: rgba(255, 255, 255, 0.55);
+  --line: rgba(20, 34, 28, 0.12);
+  --danger: #8b2e2e;
+  --font-display: var(--font-display), "Noto Serif Sinhala", serif;
+  --font-body: var(--font-body), "Noto Sans Sinhala", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #c8e0d2 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #f0e0b8 0%, transparent 50%),
+    linear-gradient(180deg, #eef4ef 0%, var(--paper) 40%, #e8ebe4 100%);
+  font-family: var(--font-body);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.workspace {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+.hero {
+  position: relative;
+  min-height: min(88vh, 720px);
+  display: grid;
+  align-items: end;
+  overflow: hidden;
+  margin: 0 -1.25rem 2rem;
+  padding: 2rem 1.25rem 3.5rem;
+  color: #f7f4ec;
+  background:
+    linear-gradient(120deg, rgba(14, 51, 38, 0.92) 0%, rgba(31, 92, 69, 0.72) 48%, rgba(20, 34, 28, 0.55) 100%),
+    radial-gradient(circle at 70% 40%, rgba(212, 181, 106, 0.35), transparent 42%),
+    linear-gradient(160deg, #0e3326, #1f5c45 55%, #24352d);
+  animation: hero-in 900ms ease-out both;
+}
+
+.hero-visual {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      -18deg,
+      transparent,
+      transparent 14px,
+      rgba(255, 255, 255, 0.03) 14px,
+      rgba(255, 255, 255, 0.03) 15px
+    );
+  pointer-events: none;
+  animation: drift 18s linear infinite;
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+}
+
+.brand {
+  margin: 0.4rem 0 0.6rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 8vw, 4.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  animation: rise 800ms 120ms ease-out both;
+}
+
+.tagline {
+  margin: 0 0 1.5rem;
+  max-width: 34rem;
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+  line-height: 1.55;
+  color: rgba(247, 244, 236, 0.88);
+  animation: rise 800ms 220ms ease-out both;
+}
+
+.lang-switch {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.lang-switch button {
+  border: 0;
+  background: transparent;
+  color: #f7f4ec;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.lang-switch button.active {
+  background: rgba(212, 181, 106, 0.9);
+  color: var(--leaf-deep);
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  animation: rise 800ms 320ms ease-out both;
+}
+
+button.primary,
+button.ghost {
+  font: inherit;
+  cursor: pointer;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid transparent;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+button.primary {
+  background: var(--gold-soft);
+  color: var(--leaf-deep);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #e2c882;
+}
+
+button.ghost {
+  background: transparent;
+  color: #f7f4ec;
+  border-color: rgba(247, 244, 236, 0.45);
+}
+
+button.ghost:hover:not(:disabled) {
+  border-color: #fff;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.panel,
+.features,
+.results {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1.25rem;
+  backdrop-filter: blur(6px);
+}
+
+.panel h2,
+.features h2,
+.results h3,
+.results h4 {
+  font-family: var(--font-display);
+  margin: 0 0 0.85rem;
+  color: var(--leaf-deep);
+}
+
+.grid-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+input,
+select {
+  font: inherit;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.features ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.55rem 1rem;
+}
+
+.features li {
+  position: relative;
+  padding-left: 1rem;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.features li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.4rem;
+  height: 0.4rem;
+  background: var(--gold);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.tabs button {
+  font: inherit;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-soft);
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.kv-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.kv-row h3 {
+  margin-bottom: 0.25rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.plain {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+}
+
+.primary-letter {
+  font-size: 1.2rem;
+}
+
+.primary-letter strong {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--leaf);
+}
+
+.bhava-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.bhava-grid article {
+  border-top: 2px solid var(--gold-soft);
+  padding-top: 0.55rem;
+}
+
+.muted {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.score {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--leaf);
+}
+
+.json-block {
+  overflow: auto;
+  max-height: 420px;
+  background: #132019;
+  color: #d9e8df;
+  padding: 1rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.error {
+  color: var(--danger);
+  margin: 0.75rem 0 0;
+}
+
+.empty {
+  color: var(--ink-soft);
+}
+
+.foot {
+  margin-top: 1.5rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+@keyframes hero-in {
+  from {
+    opacity: 0.4;
+    clip-path: inset(0 0 8% 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(24px);
+  }
+}
+
+/* —— කේන්ද්‍ර සටහන (traditional print layout) —— */
+.satahana-host {
+  background: #fff;
+  color: #111;
+  border: 1px solid #222;
+  padding: 0.75rem;
+}
+
+.satahana-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.satahana {
+  font-family: var(--font-body), "Noto Sans Sinhala", sans-serif;
+  color: #111;
+  background: #fff;
+}
+
+.satahana-blessing {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #333;
+}
+
+.satahana-title {
+  margin: 0.35rem 0 0.25rem;
+  text-align: center;
+  font-family: var(--font-display), serif;
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.satahana-birth {
+  margin: 0 0 0.75rem;
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.satahana-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem 1rem;
+  border: 1.5px solid #111;
+  padding: 0.55rem 0.7rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.86rem;
+}
+
+.satahana-meta > div > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem;
+  padding: 0.12rem 0;
+  border-bottom: 1px dotted #ccc;
+}
+
+.satahana-meta span {
+  color: #444;
+}
+
+.satahana-meta b {
+  font-weight: 600;
+  text-align: right;
+}
+
+.satahana-subtitle {
+  margin: 0 0 0.35rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.satahana-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.satahana-charts-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.satahana-charts-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Traditional SL booklet dotted-line style */
+.booklet-satahana {
+  font-family: "Iskoola Pota", "Noto Serif Sinhala", "Noto Sans Sinhala", serif;
+}
+
+.booklet-page {
+  margin-bottom: 1.25rem;
+}
+
+.booklet-line {
+  margin: 0.45rem 0;
+  line-height: 1.75;
+  font-size: 0.95rem;
+  border-bottom: 1px dotted #999;
+  padding-bottom: 0.35rem;
+}
+
+.booklet-fill {
+  display: inline-block;
+  min-width: 1.6rem;
+  padding: 0 0.2rem;
+  font-weight: 700;
+  color: #111;
+  border-bottom: 1px solid #333;
+}
+
+.booklet-h3 {
+  margin: 0.85rem 0 0.4rem;
+  font-size: 1rem;
+  font-family: var(--font-display), "Iskoola Pota", serif;
+}
+
+.booklet-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: #555;
+  font-style: italic;
+}
+
+.booklet-charts {
+  margin-top: 0.85rem;
+}
+
+.booklet-sphuta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem 1rem;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.88rem;
+}
+
+.booklet-table th,
+.booklet-table td {
+  text-align: center;
+}
+
+.satahana-meta-rich {
+  font-size: 0.82rem;
+}
+
+.satahana-legend {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.satahana-box {
+  border: 1.5px solid #111;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.88rem;
+}
+
+.satahana-box h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-family: var(--font-display), serif;
+}
+
+.satahana-box p {
+  margin: 0.25rem 0;
+}
+
+.satahana-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  columns: 2;
+  font-size: 0.82rem;
+}
+
+.sav-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.35rem;
+}
+
+.sav-cell {
+  border: 1px solid #333;
+  padding: 0.35rem;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.sav-cell strong {
+  display: block;
+  font-size: 1.05rem;
+  color: #b00000;
+}
+
+.si-chart {
+  width: 100%;
+}
+
+.si-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  aspect-ratio: 1;
+  border: 2px solid #111;
+  background: #fff;
+}
+
+.si-cell {
+  border: 1px solid #222;
+  padding: 0.2rem;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.si-cell.si-lagna {
+  background: #fff8f8;
+}
+
+.si-sign {
+  display: block;
+  font-size: 0.65rem;
+  color: #666;
+  line-height: 1.1;
+}
+
+.si-glyphs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.3rem;
+  margin-top: 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111;
+}
+
+.si-center {
+  grid-row: 2 / 4;
+  grid-column: 2 / 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid #222;
+  padding: 0.4rem;
+  background: #fff;
+  z-index: 1;
+}
+
+.si-center strong {
+  color: #b00000;
+  font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.si-center span {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: #333;
+}
+
+/* Traditional Sri Lankan 3×3 කේන්ද්‍රය with diagonal corner houses */
+.sl-chart {
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.sl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  aspect-ratio: 1;
+  border: 2px solid #111;
+  background: #fff;
+}
+
+.sl-cell {
+  position: relative;
+  border: 1px solid #222;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.sl-edge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+}
+
+.sl-corner {
+  padding: 0;
+}
+
+.sl-tri {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  padding: 0.15rem 0.25rem;
+  box-sizing: border-box;
+}
+
+.sl-tri-tr {
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-top: 0.2rem;
+  padding-right: 0.25rem;
+}
+
+.sl-tri-bl {
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding-bottom: 0.2rem;
+  padding-left: 0.25rem;
+}
+
+.sl-tri-tl {
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 0.2rem;
+  padding-left: 0.25rem;
+}
+
+.sl-tri-br {
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding-bottom: 0.2rem;
+  padding-right: 0.25rem;
+}
+
+.sl-diag {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.sl-diag line {
+  stroke: #111;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.sl-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid #222;
+  padding: 0.35rem;
+  background: #fff;
+}
+
+.sl-center strong {
+  color: #b00000;
+  font-size: clamp(0.9rem, 2.4vw, 1.15rem);
+  font-weight: 700;
+  line-height: 1.3;
+  font-family: "Iskoola Pota", "Noto Serif Sinhala", "Noto Sans Sinhala", serif;
+}
+
+.sl-house {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  max-width: 100%;
+}
+
+.sl-glyphs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.28rem;
+  justify-content: center;
+  font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+  font-weight: 700;
+  color: #111;
+  line-height: 1.15;
+  font-family: "Iskoola Pota", "Noto Serif Sinhala", "Noto Sans Sinhala", serif;
+}
+
+.sl-num {
+  font-size: clamp(1rem, 2.8vw, 1.35rem);
+  font-weight: 600;
+  color: #222;
+  line-height: 1;
+}
+
+.sl-num-quiet {
+  font-size: 0.65rem;
+  color: #888;
+  line-height: 1;
+}
+
+.booklet-charts-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 0.5rem auto 0.75rem;
+  max-width: 440px;
+}
+
+.booklet-charts-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.5rem;
+}
+
+.booklet-charts-page .booklet-note {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 440px;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.satahana-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+
+.satahana-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.satahana-table th,
+.satahana-table td {
+  border: 1px solid #333;
+  padding: 0.22rem 0.35rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.satahana-table th {
+  background: #f3f3f3;
+  font-weight: 700;
+}
+
+.satahana-table.compact th,
+.satahana-table.compact td {
+  font-size: 0.78rem;
+}
+
+.satahana-dasha {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.satahana-dasha h3,
+.satahana-table-wrap h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-family: var(--font-display), serif;
+}
+
+.satahana-balance {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.satahana-footer {
+  margin-top: 0.5rem;
+  border: 1px solid #333;
+  padding: 0.4rem 0.55rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+/* —— Print controls (screen) —— */
+.print-controls {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  background: #fbfaf6;
+}
+
+.print-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.print-controls label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  min-width: 11rem;
+}
+
+.print-controls select {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.print-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.print-hint-note {
+  font-size: 0.78rem;
+}
+
+/* —— Print / PDF (A4-first; @page size injected at print time) —— */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+@media print {
+  .hero,
+  .tabs,
+  .features,
+  .lang-switch,
+  .hero-cta,
+  .birth-panel,
+  .foot,
+  .no-print,
+  .satahana-actions,
+  .print-controls,
+  .name-studio,
+  button {
+    display: none !important;
+  }
+
+  .workspace {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .panel,
+  .results {
+    border: none;
+    background: #fff;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .satahana-host {
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .satahana {
+    color: #000;
+    background: #fff;
+  }
+
+  .satahana-charts,
+  .si-grid,
+  .satahana-table-wrap,
+  .satahana-dasha,
+  .satahana-box {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .satahana-table {
+    page-break-inside: auto;
+  }
+
+  .satahana-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* —— Mode: charts only —— */
+  html[data-print-mode="charts"] .print-sheet-cover,
+  html[data-print-mode="charts"] .print-sheet-graha,
+  html[data-print-mode="charts"] .print-sheet-dasha,
+  html[data-print-mode="charts"] .print-sheet-bhava {
+    display: none !important;
+  }
+
+  html[data-print-mode="charts"] .print-sheet-charts {
+    display: flex !important;
+  }
+
+  html[data-print-mode="charts"] .satahana-charts-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4mm;
+  }
+
+  html[data-print-mode="charts"] .si-grid,
+  html[data-print-mode="charts"] .sl-grid {
+    max-height: 120mm;
+  }
+
+  html[data-print-mode="charts"] .sl-chart {
+    max-width: 120mm;
+  }
+
+  /* —— Mode: print book / booklet —— */
+  html[data-print-mode="book"] .print-sheet {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  html[data-print-mode="book"] .print-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  html[data-print-mode="book"] .print-sheet-cover .satahana-title {
+    font-size: 22pt;
+  }
+
+  html[data-print-mode="book"] .si-grid,
+  html[data-print-mode="book"] .sl-grid {
+    max-height: 95mm;
+  }
+
+  html[data-print-mode="book"] .sl-chart {
+    max-width: 95mm;
+  }
+
+  html[data-print-mode="book"] .booklet-charts-stack {
+    gap: 8mm;
+  }
+
+  /* —— Mode: standard multi-page —— */
+  html[data-print-mode="standard"] .print-sheet-cover {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  html[data-print-mode="standard"] .print-sheet-dasha {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  html[data-print-mode="standard"] .satahana-title {
+    font-size: 18pt;
+  }
+
+  html[data-print-mode="standard"] .satahana-meta {
+    font-size: 8.5pt;
+  }
+
+  html[data-print-mode="standard"] .satahana-table {
+    font-size: 8pt;
+  }
+
+  /* —— Mode: single A4 page —— */
+  html[data-print-mode="single"] .print-sheet {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  html[data-print-mode="single"] .print-optional-extra,
+  html[data-print-mode="single"] .print-sheet-bhava .satahana-table-wrap {
+    display: none !important;
+  }
+
+  html[data-print-mode="single"] .satahana {
+    font-size: 6.5pt;
+    line-height: 1.2;
+  }
+
+  html[data-print-mode="single"] .satahana-blessing {
+    font-size: 6pt;
+  }
+
+  html[data-print-mode="single"] .satahana-title {
+    font-size: 11pt;
+    margin: 0.5mm 0 0.5mm;
+  }
+
+  html[data-print-mode="single"] .satahana-subtitle,
+  html[data-print-mode="single"] .satahana-birth {
+    font-size: 6.5pt;
+    margin-bottom: 1.5mm;
+  }
+
+  html[data-print-mode="single"] .satahana-meta {
+    font-size: 6pt;
+    padding: 1mm 1.5mm;
+    margin-bottom: 1.5mm;
+    gap: 0.5mm 2mm;
+  }
+
+  html[data-print-mode="single"] .satahana-meta > div > div {
+    padding: 0;
+  }
+
+  html[data-print-mode="single"] .satahana-charts {
+    gap: 1.5mm;
+    margin-bottom: 1.5mm;
+  }
+
+  html[data-print-mode="single"] .satahana-charts-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  html[data-print-mode="single"] .si-grid,
+  html[data-print-mode="single"] .sl-grid {
+    max-height: 34mm;
+    border-width: 1px;
+  }
+
+  html[data-print-mode="single"] .sl-chart {
+    max-width: 34mm;
+  }
+
+  html[data-print-mode="single"] .booklet-charts-stack {
+    flex-direction: row;
+    max-width: none;
+    gap: 2mm;
+  }
+
+  html[data-print-mode="single"] .si-cell {
+    padding: 0.5mm;
+  }
+
+  html[data-print-mode="single"] .si-sign {
+    font-size: 4.5pt;
+  }
+
+  html[data-print-mode="single"] .si-glyphs,
+  html[data-print-mode="single"] .sl-glyphs {
+    font-size: 6pt;
+    gap: 0.3mm 0.6mm;
+    margin-top: 0;
+  }
+
+  html[data-print-mode="single"] .sl-num {
+    font-size: 7pt;
+  }
+
+  html[data-print-mode="single"] .sl-num-quiet {
+    font-size: 4pt;
+  }
+
+  html[data-print-mode="single"] .si-center,
+  html[data-print-mode="single"] .sl-center {
+    padding: 0.5mm;
+  }
+
+  html[data-print-mode="single"] .si-center strong,
+  html[data-print-mode="single"] .sl-center strong {
+    font-size: 6pt;
+  }
+
+  html[data-print-mode="single"] .si-center span {
+    font-size: 5pt;
+    margin-top: 0;
+  }
+
+  html[data-print-mode="single"] .print-sheet-charts .booklet-note {
+    font-size: 5pt;
+  }
+
+  html[data-print-mode="single"] .satahana-table-wrap,
+  html[data-print-mode="single"] .satahana-box,
+  html[data-print-mode="single"] .satahana-dasha {
+    margin-bottom: 1.5mm;
+  }
+
+  html[data-print-mode="single"] .satahana-table-wrap h3,
+  html[data-print-mode="single"] .satahana-dasha h3,
+  html[data-print-mode="single"] .satahana-box h3 {
+    font-size: 7pt;
+    margin-bottom: 0.5mm;
+  }
+
+  html[data-print-mode="single"] .satahana-table,
+  html[data-print-mode="single"] .satahana-table.compact th,
+  html[data-print-mode="single"] .satahana-table.compact td {
+    font-size: 5.5pt;
+  }
+
+  html[data-print-mode="single"] .satahana-table th,
+  html[data-print-mode="single"] .satahana-table td {
+    padding: 0.2mm 0.5mm;
+  }
+
+  html[data-print-mode="single"] .satahana-dasha {
+    gap: 1.5mm;
+  }
+
+  html[data-print-mode="single"] .satahana-balance {
+    font-size: 6pt;
+    margin-bottom: 1mm;
+  }
+
+  html[data-print-mode="single"] .satahana-box {
+    padding: 1mm 1.5mm;
+    font-size: 6pt;
+  }
+
+  html[data-print-mode="single"] .satahana-footer {
+    font-size: 5.5pt;
+    padding: 0.8mm;
+    margin-top: 0.5mm;
+  }
+
+  html[data-print-mode="single"] .print-optional-nam p {
+    margin: 0.2mm 0;
+  }
+
+  html[data-print-mode="single"] .satahana-legend {
+    display: none !important;
+  }
+
+  /* Auto-fit scale applied by runPrint() via --print-scale */
+  html[data-print-mode="single"] .satahana-host,
+  html[data-print-mode="charts"] .satahana-host {
+    zoom: var(--print-scale, 1);
+  }
+
+  /* Landscape: wider charts row */
+  html[data-print-paper="A4-landscape"][data-print-mode="single"] .si-grid,
+  html[data-print-paper="A4-landscape"][data-print-mode="charts"] .si-grid {
+    max-height: 55mm;
+  }
+
+  html[data-print-paper="A4-landscape"] .satahana-charts-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .satahana-charts-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 800px) {
+  .satahana-charts,
+  .satahana-charts-3,
+  .satahana-dasha,
+  .satahana-meta,
+  .sav-grid,
+  .satahana-list {
+    grid-template-columns: 1fr;
+    columns: 1;
+  }
+}
+
+/* —— Place picker —— */
+.place-fields {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.place-search input[type="search"] {
+  width: 100%;
+}
+
+.place-count {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 0.85em;
+}
+
+.place-custom-toggle {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+}
+
+.place-custom-toggle input {
+  width: auto;
+}
+
+.place-coords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.place-hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* —— Athurudaya AI agent —— */
+.agent-panel {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  padding: 1rem 1.15rem 1.25rem;
+}
+
+.agent-head h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  color: var(--leaf-deep);
+}
+
+.agent-head p {
+  margin: 0 0 0.85rem;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.agent-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.agent-topics button {
+  font: inherit;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.agent-topics button.active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+
+.agent-thread {
+  min-height: 220px;
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  background: #fbfaf6;
+  padding: 0.85rem;
+  margin-bottom: 0.65rem;
+}
+
+.agent-msg {
+  margin-bottom: 0.85rem;
+}
+
+.agent-msg .agent-role {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--leaf);
+  margin-bottom: 0.2rem;
+}
+
+.agent-msg.user .agent-role {
+  color: var(--ink-soft);
+}
+
+.agent-body {
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.agent-tools {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin: 0 0 0.5rem;
+}
+
+.agent-compose {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.agent-compose textarea {
+  font: inherit;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* —— Modern Name Studio (agentic) —— */
+.name-studio {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.85rem;
+}
+
+.name-studio-head h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display), "Iskoola Pota", serif;
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+
+.name-studio-head p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: 46rem;
+}
+
+.name-source-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.name-source-tabs button {
+  font: inherit;
+  font-size: 0.88rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.name-source-tabs button.active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+
+.name-source-note {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.name-manual-letters {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px dashed var(--line);
+  background: #fbfaf6;
+}
+
+.name-roman {
+  font-weight: 500;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.name-parts {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.name-studio-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem 0.85rem;
+}
+
+.name-studio-grid .span-2 {
+  grid-column: 1 / -1;
+}
+
+.name-studio-grid label,
+.name-studio > label {
+  display: grid;
+  gap: 0.28rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.name-studio input,
+.name-studio select {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.name-country-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.name-count-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+}
+
+.learning-brief {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.name-feedback-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0.25rem;
+}
+
+.name-feedback-bar button {
+  border: 1px solid color-mix(in oklab, var(--ink) 18%, transparent);
+  background: color-mix(in oklab, var(--paper, #fff) 88%, var(--ink));
+  color: var(--ink);
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.name-feedback-bar button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.name-feedback-bar .fb-like {
+  border-color: color-mix(in oklab, #2f6b4f 45%, transparent);
+}
+
+.name-feedback-bar .fb-dislike {
+  border-color: color-mix(in oklab, #8b3a2b 45%, transparent);
+}
+
+.name-feedback-bar.picked-feedback {
+  margin-top: 0.75rem;
+}
+
+.name-picked .picked-feedback button {
+  font-size: 0.82rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.name-interests {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.name-interests h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip-row button {
+  font: inherit;
+  font-size: 0.8rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 0.3rem 0.65rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.chip-row button.active {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+
+.name-picked {
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, #f3f7ef, #fbfaf6);
+  border: 1px solid color-mix(in srgb, var(--leaf) 35%, var(--line));
+}
+
+.name-picked h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  color: var(--leaf);
+}
+
+.picked-main {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+  font-family: var(--font-display), "Iskoola Pota", serif;
+}
+
+.name-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.name-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  background: #fff;
+  align-content: start;
+}
+
+.name-card.primary-letter {
+  border-color: color-mix(in srgb, var(--leaf) 45%, var(--line));
+}
+
+.name-card.usage-verified {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--leaf) 35%, transparent);
+}
+
+.name-factors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem 0.75rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+}
+
+.name-factors li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: color-mix(in oklab, var(--ink) 72%, transparent);
+}
+
+.name-factors strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.persona-brief {
+  display: inline-block;
+  margin-top: 0.35rem;
+  max-width: 70ch;
+}
+
+.name-card .align-why {
+  color: color-mix(in oklab, var(--accent, #8b5a2b) 85%, var(--ink));
+}
+
+.name-card .usage-hit {
+  color: color-mix(in srgb, var(--leaf) 70%, var(--ink-soft));
+  font-weight: 600;
+}
+
+.name-card.selected {
+  outline: 2px solid var(--leaf);
+  outline-offset: 1px;
+}
+
+.name-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.name-card header strong {
+  font-size: 1.05rem;
+}
+
+.name-badge {
+  font-size: 0.75rem;
+  color: var(--leaf);
+  white-space: nowrap;
+}
+
+.name-meaning {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.name-card .muted {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.name-card footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.name-card footer button {
+  font: inherit;
+  font-size: 0.78rem;
+  border: 1px solid var(--leaf);
+  background: transparent;
+  color: var(--leaf);
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+}
+
+.name-card footer button:hover {
+  background: var(--leaf);
+  color: #fff;
+}
+
+.nakath-finder-head h3 {
+  margin: 0 0 0.35rem;
+}
+
+.nakath-divider {
+  border: none;
+  border-top: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  margin: 1.25rem 0;
+}
+
+.nakath-day-card {
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  border-radius: 0.4rem;
+}
+
+.nakath-day-card.grade-excellent,
+.nakath-day-card.grade-good {
+  border-color: color-mix(in oklab, #2f6b4f 50%, transparent);
+}
+
+.nakath-day-card.grade-avoid {
+  border-color: color-mix(in oklab, #8b3a2b 45%, transparent);
+}
+
+.nakath-date-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.nakath-date-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--ink) 12%, transparent);
+  border-radius: 0.35rem;
+}
+
+.nakath-date-row.suitable {
+  border-color: color-mix(in oklab, #2f6b4f 40%, transparent);
+}
+
+.nakath-chip-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.nakath-chip-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
+  border-radius: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.nakath-chip-list li.fit-prefer {
+  border-color: color-mix(in oklab, #2f6b4f 45%, transparent);
+}
+
+.nakath-chip-list li span {
+  color: color-mix(in oklab, var(--ink) 65%, transparent);
+  font-size: 0.72rem;
+}
+
+.nakath-all {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    min-height: 72vh;
+    padding-bottom: 2.5rem;
+  }
+  .brand {
+    font-size: 2.4rem;
+  }
+  .name-studio-grid {
+    grid-template-columns: 1fr;
+  }
+  .nakath-date-row {
+    flex-direction: column;
+  }
+}
