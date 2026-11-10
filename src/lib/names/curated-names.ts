@@ -1,6 +1,6 @@
 import { allowedNames, type NameRecord } from "./catalogue";
 import { makePart, letterMatch } from "./name-pipeline";
-import { scoreReadability } from "./factor-align";
+import { scoreReadability } from "./readability";
 import type { SuggestedName } from "./types";
 import type { ReligionContext, LivingCountry } from "./personalities";
 export type CuratedOptions = {
@@ -89,6 +89,13 @@ export function curatedPair(
     era: first.era === middle.era ? first.era : "mixed",
     meaningStatus: review ? "review" : "sourced",
     meaningSources: [first.source, middle.source],
+    meaningEvidence: [first, middle].map((n) => ({
+      name: n.roman,
+      basis:
+        n.meaningBasis ??
+        (n.meaningStatus === "review" ? "unverified" : "lexical"),
+      sources: [n.source, ...(n.supportingSources ?? [])],
+    })),
     catalogueIds: [first.id, middle.id],
     popularity: "editorial-unranked",
   };
@@ -140,49 +147,76 @@ export function curatedNames(o: CuratedOptions): SuggestedName[] {
   );
   const excluded = new Set((o.excludePairs ?? []).map(pairKey)),
     blocked = new Set((o.excludeParts ?? []).map(pairKey));
-  const groups = new Map<string, SuggestedName[]>();
-  for (const f of firsts)
-    for (const m of middles) {
-      if (
-        f.id === m.id ||
-        (f.variantGroup && f.variantGroup === m.variantGroup) ||
-        blocked.has(pairKey(f.roman)) ||
-        blocked.has(pairKey(m.roman))
-      )
-        continue;
-      const n = curatedPair(f, m, o);
-      if (excluded.has(pairKey(n.roman))) continue;
-      const rows = groups.get(f.id) ?? [];
-      rows.push(n);
-      groups.set(f.id, rows);
-    }
-  // Per-request jitter only inside a 4-point quality band. A first-name round-robin
-  // prevents filling the first 20 slots with the same fashionable first name.
-  const jitter = new Map<string, number>();
+  // Keep only small candidate references while ranking. Building full narratives,
+  // source arrays and score breakdowns for the Cartesian product wastes memory.
+  type Candidate = {
+    f: NameRecord;
+    m: NameRecord;
+    score: number;
+    order: number;
+  };
+  const groups = new Map<string, Candidate[]>();
   const variation = o.variation ?? Math.random();
   function hash(s: string) {
     let h = Math.floor(variation * 0x7fffffff);
     for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
     return (h >>> 0) / 0xffffffff;
   }
-  for (const rows of groups.values())
-    for (const n of rows) jitter.set(n.roman, hash(n.roman) * 4);
-  const compare = (a: SuggestedName, b: SuggestedName) =>
-    b.score +
-      (jitter.get(b.roman) ?? 0) -
-      (a.score + (jitter.get(a.roman) ?? 0)) || a.roman.localeCompare(b.roman);
-  for (const rows of groups.values()) rows.sort(compare);
+  const compare = (a: Candidate, b: Candidate) =>
+    b.order - a.order ||
+    a.f.roman.localeCompare(b.f.roman) ||
+    a.m.roman.localeCompare(b.m.roman);
+  const limit = Math.min(200, Math.max(0, o.count));
+  if (!limit) return [];
+  const modern = new Map(
+    [...firsts, ...middles].map((n) => [n.id, modernity(n)]),
+  );
+  for (const f of firsts) {
+    if (blocked.has(pairKey(f.roman))) continue;
+    const rows: Candidate[] = [];
+    const exact =
+      o.primary &&
+      f.sinhala.normalize("NFC").startsWith(o.primary.normalize("NFC"))
+        ? 100
+        : 80;
+    for (const m of middles) {
+      if (
+        f.id === m.id ||
+        (f.variantGroup && f.variantGroup === m.variantGroup) ||
+        blocked.has(pairKey(m.roman))
+      )
+        continue;
+      const roman = `${f.roman} ${m.roman}`;
+      if (excluded.has(pairKey(roman))) continue;
+      const score = Math.round(
+        exact * 0.3 +
+          Math.round((modern.get(f.id)! + modern.get(m.id)!) / 2) * 0.3 +
+          scoreReadability({ first: f, middle: m }) * 0.25 +
+          15 -
+          (f.meaningStatus === "review" || m.meaningStatus === "review"
+            ? 15
+            : 0),
+      );
+      rows.push({ f, m, score, order: score + hash(roman) * 4 });
+    }
+    if (!rows.length) continue;
+    const key = f.variantGroup ?? f.id;
+    const combined = [...(groups.get(key) ?? []), ...rows];
+    combined.sort(compare);
+    groups.set(key, combined.slice(0, limit));
+  }
+  // Round-robin across distinct first-name/variant groups before repeating one.
   const ordered = [...groups.values()].sort((a, b) => compare(a[0], b[0]));
   const result: SuggestedName[] = [];
-  for (let round = 0; result.length < o.count; round++) {
+  for (let round = 0; result.length < limit; round++) {
     let found = false;
-    for (const rows of ordered) {
+    for (const rows of ordered)
       if (rows[round]) {
-        result.push(rows[round]);
+        const n = rows[round];
+        result.push(curatedPair(n.f, n.m, o));
         found = true;
-        if (result.length >= o.count) break;
+        if (result.length >= limit) break;
       }
-    }
     if (!found) break;
   }
   return result;

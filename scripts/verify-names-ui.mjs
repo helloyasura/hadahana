@@ -190,6 +190,21 @@ try {
           400,
           "100-item legacy pool must pass validation",
         );
+        assert.equal(
+          new Set(result.names.map((n) => n.first.roman)).size,
+          20,
+          "20 distinct first names",
+        );
+        assert(
+          result.letterCoverage.some(
+            (c) => c.letter === "ට" && c.allowedCount === 0,
+          ),
+        );
+        assert(
+          result.letterCoverage.some(
+            (c) => c.letter === "ම" && c.allowedCount > 0,
+          ),
+        );
         const changed = page.waitForResponse((r) =>
           r.url().endsWith("/api/names/reshuffle"),
         );
@@ -293,6 +308,10 @@ try {
         await page
           .getByLabel("Religion / culture preference", { exact: true })
           .selectOption("buddhist");
+        await page.getByLabel("First-name letters", { exact: true }).fill("ටි");
+        await page
+          .getByLabel("Middle-name letters (optional)", { exact: true })
+          .fill("ම");
         await page
           .getByLabel(
             "Show modern names with unverified meanings (review only)",

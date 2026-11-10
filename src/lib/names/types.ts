@@ -51,6 +51,11 @@ export type SuggestedName = {
   era?: "modern" | "timeless" | "traditional" | "mixed";
   meaningStatus?: "sourced" | "review";
   meaningSources?: string[];
+  meaningEvidence?: {
+    name: string;
+    basis: "lexical" | "name-reference" | "derived" | "unverified";
+    sources: string[];
+  }[];
   catalogueIds?: string[];
   popularity?: "editorial-unranked";
   /** Current-generation usage verification in living country */

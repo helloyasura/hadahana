@@ -19,8 +19,8 @@ const names = curatedNames(o);
 assert.equal(names.length, 20);
 assert.equal(new Set(names.map((n) => n.roman)).size, 20);
 assert(
-  new Set(names.map((n) => n.first.roman)).size >= 8,
-  "Not twenty variants of one first name",
+  new Set(names.map((n) => n.first.roman)).size === 20,
+  "Twenty distinct first names, not recombined filler",
 );
 assert(
   !names.some((n) =>

@@ -130,17 +130,37 @@ export function NameStudio({
             ? "මෙම අකුරු සහ මනාප සඳහා සමාලෝචිත නව විකල්ප අඩුයි. අකුරු හෝ මනාප වෙනස් කළ හැක; හිඟය පිරවීමට නම්/අර්ථ නිර්මාණය නොකරමු."
             : "Fewer reviewed, unused matches remain for these letters/preferences. We will not invent names or meanings to fill the count.",
         );
-      if (j.unmatchedLetters?.length)
+      if (j.unmatchedLetters?.length) {
+        const available = (j.letterCoverage ?? [])
+          .filter((c: { allowedCount: number }) => c.allowedCount > 0)
+          .map((c: { letter: string }) => c.letter)
+          .join(", ");
         setNotice(
-          (j.exhausted
-            ? si
-              ? "සමාලෝචිත විකල්ප අඩුයි. "
-              : "Fewer reviewed matches remain. "
-            : "") +
-            (si
-              ? `මෙම අකුරු සඳහා සමාලෝචිත නම් නැත: ${j.unmatchedLetters.join(", ")}. දී ඇති වෙනත් අකුරු පමණක් යොදා ඇත.`
-              : `No reviewed matches for: ${j.unmatchedLetters.join(", ")}. Only your other allowed letters are used.`),
+          (si
+            ? `මෙම අකුරු සඳහා සමාලෝචිත නම් නැත: ${j.unmatchedLetters.join(", ")}. `
+            : `No reviewed matches for: ${j.unmatchedLetters.join(", ")}. `) +
+            (available
+              ? si
+                ? `දී ඇති වෙනත් අකුරුවල සමාලෝචිත විකල්ප: ${available}. අකුරු ස්වයංක්‍රීයව වෙනස් නොකරමු.`
+                : `Reviewed alternatives within your allowed set: ${available}. We never silently substitute letters.`
+              : si
+                ? "දී ඇති අකුරු අතර විකල්ප නැත. උපදෙස් ලබා අමතර අකුරු ඔබම තෝරන්න; ට සහ ත වෙනස් අකුරුය."
+                : "No reviewed alternatives within the allowed set. Add letters explicitly after advice; ට and ත are distinct."),
         );
+      } else {
+        const baseOnly = (j.letterCoverage ?? [])
+          .filter(
+            (c: { allowedCount: number; exactCount: number }) =>
+              c.allowedCount > 0 && !c.exactCount,
+          )
+          .map((c: { letter: string }) => c.letter);
+        if (baseOnly.length)
+          setNotice(
+            si
+              ? `හරියටම මෙම ශබ්දවල නම් නැත: ${baseOnly.join(", ")}. යෙදුමේ පැහැදිලි කළ මූල ව්‍යංජන විකල්ප පමණක් යොදා ඇත.`
+              : `No exact-syllable spelling matches for: ${baseOnly.join(", ")}. Using only the app's disclosed permitted base-consonant alternatives.`,
+          );
+      }
       track("name_suggestions_generated", { method: "curated" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
@@ -418,25 +438,48 @@ export function NameStudio({
               {si ? "ශෛලිය" : "Style"}: {n.era} ·{" "}
               {si ? "සංස්කාරක ලකුණු" : "Editorial score"}: {n.score}
             </p>
-            {n.meaningStatus === "review" ? (
+            {n.meaningStatus === "review" && (
               <p className="name-review-warning">
                 {si
                   ? "අර්ථය සත්‍යාපනය කර නැත. අවසාන තේරීමට පෙර භාෂා විශේෂඥයෙකුගෙන් විමසන්න."
                   : "Meaning unverified. Ask a language specialist before your final choice."}
               </p>
-            ) : (
-              <details>
-                <summary>{si ? "අර්ථ මූලාශ්‍ර" : "Meaning sources"}</summary>
-                {(n.meaningSources ?? []).map((url, i) => (
-                  <p key={i}>
-                    <a href={url} target="_blank" rel="noreferrer">
-                      {i === 0 ? n.first.roman : n.middle.roman} —{" "}
-                      {si ? "මූලාශ්‍රය" : "source"}
-                    </a>
-                  </p>
-                ))}
-              </details>
             )}
+            {n.meaningEvidence?.some((e) => e.basis === "derived") && (
+              <p className="name-derived-note">
+                {si
+                  ? "මූල පදවලින් ගත් යෝජිත නාම කියවීමකි; සම්පූර්ණ නමේ ස්ථාපිත ඓතිහාසික අර්ථයක් ලෙස නොසලකන්න."
+                  : "Root-derived reading, not a claim of an established historical full-name etymology."}
+              </p>
+            )}
+            <details>
+              <summary>
+                {si ? "අර්ථ / නාම මූලාශ්‍ර" : "Meaning / name references"}
+              </summary>
+              {(
+                n.meaningEvidence ??
+                (n.meaningSources ?? []).map((url, i) => ({
+                  name: i === 0 ? n.first.roman : n.middle.roman,
+                  basis: "name-reference",
+                  sources: [url],
+                }))
+              ).map((e, i) => (
+                <div key={i}>
+                  <small>
+                    {e.name} · {e.basis}
+                  </small>
+                  {e.sources
+                    .filter((url) => url.startsWith("https://"))
+                    .map((url, j) => (
+                      <p key={url}>
+                        <a href={url} target="_blank" rel="noreferrer">
+                          {e.name} — {si ? "මූලාශ්‍රය" : "reference"} {j + 1}
+                        </a>
+                      </p>
+                    ))}
+                </div>
+              ))}
+            </details>
             <div className="name-feedback-bar">
               <button
                 type="button"

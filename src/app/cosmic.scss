@@ -1191,3 +1191,11 @@ $surface: rgba(17, 21, 41, 0.86);
 .name-review-warning,.name-notice {border-left:3px solid #e2c590;padding:.8rem 1rem;background:rgba(226,197,144,.07);line-height:1.9;}
 .name-studio details {font-size:.85rem;line-height:1.8;summary {cursor:pointer;color:#9be8df;} a {color:#b8e9e0;overflow-wrap:anywhere;}}
 .workspace .name-studio > .place-custom-toggle {display:flex;align-items:flex-start;line-height:1.9;input {flex:0 0 auto;margin-top:.4em;accent-color:#9be8df;}}
+
+.name-derived-note {
+  font-size: .82rem;
+  color: var(--text-muted, #b4b1c7);
+  line-height: 1.6;
+  border-left: 2px solid #8bbfc0;
+  padding-left: .65rem;
+}

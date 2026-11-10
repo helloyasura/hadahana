@@ -1,6 +1,10 @@
 /** Human-auditable allowlist. No generated word or model-supplied meaning is accepted. */
 import type { ReligionContext } from "./personalities";
 import { nameMatchesLetter } from "./sinhala-base";
+import { DATA as SINHALA_DATA } from "./catalogue-data/sinhala";
+import { DATA as TAMIL_DATA } from "./catalogue-data/tamil";
+import { DATA as INTERNATIONAL_DATA } from "./catalogue-data/international";
+import { DATA as ARABIC_DATA } from "./catalogue-data/arabic";
 export type Culture = "sinhala" | "tamil" | "international" | "arabic";
 export type NameRecord = {
   id: string;
@@ -16,6 +20,8 @@ export type NameRecord = {
   source: string;
   syllables: number;
   variantGroup?: string;
+  meaningBasis?: "lexical" | "name-reference" | "derived" | "unverified";
+  supportingSources?: string[];
 };
 const B = "https://www.behindthename.com/name/";
 const K = "https://kosha.sanskrit.today/word/sa/";
@@ -206,6 +212,141 @@ for (const id of ["monica", "ravindu", "kavindu", "malani"]) {
       "Earlier meaning gloss unverified — linguistic review required.";
   }
 }
+// Data stays server-side: only selected result metadata is returned to the client.
+// Four compact text chunks are parsed once per server worker (<1 MB measured).
+function sourceUrl(key: string) {
+  if (key.startsWith("K:")) return K + key.slice(2);
+  if (key.startsWith("B:")) return B + key.slice(2);
+  return key;
+}
+for (const chunk of [
+  SINHALA_DATA,
+  TAMIL_DATA,
+  INTERNATIONAL_DATA,
+  ARABIC_DATA,
+]) {
+  for (const line of chunk.trim().split("\n")) {
+    const [
+      roman,
+      sinhala,
+      gender,
+      meaningSi,
+      meaningEn,
+      religions,
+      culture,
+      era,
+      syllables,
+      source,
+      status,
+      basis,
+      extra,
+    ] = line.split("|");
+    const record: NameRecord = {
+      id: roman.toLowerCase(),
+      roman,
+      sinhala,
+      gender: gender as NameRecord["gender"],
+      meaningSi,
+      meaningEn,
+      religions: religions.split(",") as ReligionContext[],
+      culture: culture as Culture,
+      era: era as NameRecord["era"],
+      syllables: Number(syllables),
+      source: sourceUrl(source),
+      meaningStatus: status as NameRecord["meaningStatus"],
+      meaningBasis: basis as NameRecord["meaningBasis"],
+      supportingSources: extra ? extra.split(";").map(sourceUrl) : [],
+    };
+    const index = NAME_CATALOGUE.findIndex((n) => n.id === record.id);
+    if (index < 0) NAME_CATALOGUE.push(record);
+    else NAME_CATALOGUE[index] = record;
+  }
+}
+// Resolve only defensible root/name evidence. These are qualified readings, not
+// a claim that a modern Sinhala form is an ancient Sanskrit/Pali dictionary word.
+const resolved: Record<string, Partial<NameRecord>> = {
+  janeesh: {
+    meaningStatus: "sourced",
+    meaningBasis: "derived",
+    meaningEn:
+      "Derived from janesa (jana + isa): lord of people, king; modern name spelling.",
+    meaningSi: "ජන + ඊශ යන මූල පදවලින්: ජන නායකයා / රජු (නවීන නාම රූපය).",
+    source: K + "janeza",
+    supportingSources: ["https://www.bachpan.com/meaning-of-janeesh.aspx"],
+    religions: ["buddhist", "hindu", "secular"],
+  },
+  vidiyan: {
+    meaningStatus: "sourced",
+    meaningBasis: "derived",
+    meaningEn:
+      "Derived reading from Tamil vidi: dawn; not an established Sanskrit/Pali etymology.",
+    meaningSi:
+      "දෙමළ විඩි (අරුණෝදය) මූලයෙන් යෝජිත කියවීමකි; ස්ථාපිත සංස්කෘත/පාලි අර්ථයක් නොවේ.",
+    source: "https://dt.madurai.io/விடி",
+    supportingSources: ["https://tamil.zone/tamil-name-finder/vidiyan/"],
+    religions: ["buddhist", "hindu", "secular"],
+    culture: "tamil",
+    syllables: 3,
+  },
+  mihin: {
+    meaningStatus: "sourced",
+    meaningBasis: "derived",
+    meaningEn:
+      "Derived from Sinhala mihi: earth; modern name-form, not a certified historical full-name etymology.",
+    meaningSi: "සිංහල මිහි (පොළොව) මූලයේ නවීන නාම රූපයක් ලෙස ගත් කියවීමකි.",
+    source: M + encodeURIComponent("මිහි"),
+    supportingSources: [],
+  },
+  mithum: {
+    meaningStatus: "sourced",
+    meaningBasis: "derived",
+    meaningEn:
+      "Derived from Sinhala mitu: friend; not a claim that the name means loving-kindness.",
+    meaningSi:
+      "සිංහල මිතු (මිතුරා) මූලයෙන් ගත් නාම කියවීමකි; මෙත්තා යන අර්ථය නොපවරමු.",
+    source: M + encodeURIComponent("මිතු"),
+    supportingSources: [],
+  },
+  ravindu: {
+    meaningStatus: "sourced",
+    meaningBasis: "derived",
+    meaningEn:
+      "Derived from ravi + indu: sun + moon; Sinhala compound reading.",
+    meaningSi: "රවි + ඉඳු: හිරු + සඳ යන මූල පදවලින් ගත් නාම කියවීමකි.",
+    source: K + "ravi",
+    supportingSources: [K + "indu"],
+  },
+  kavindu: {
+    meaningStatus: "sourced",
+    meaningBasis: "derived",
+    meaningEn:
+      "Derived reading of kavindra (kavi + indra): chief of poets; proposed Sinhala adaptation.",
+    meaningSi:
+      "කවි + ඉන්ද්‍ර (කවීන්ගේ ප්‍රධානියා) මූලවල යෝජිත සිංහල නාම රූපයකි.",
+    source: K + "kavIndra",
+    supportingSources: [K + "kavi", K + "indra"],
+  },
+};
+for (const n of NAME_CATALOGUE) {
+  Object.assign(n, resolved[n.id] ?? {});
+  if (n.meaningStatus === "sourced") delete REVIEW_NOTES[n.id];
+  if (!n.meaningBasis)
+    n.meaningBasis =
+      n.meaningStatus === "review"
+        ? "unverified"
+        : n.source.startsWith(B)
+          ? "name-reference"
+          : "lexical";
+  if (n.meaningStatus === "review" && !n.source.startsWith("https://")) {
+    n.source =
+      "https://angelsname.com/unique-sinhala-baby-boy-names-starting-with-" +
+      n.roman[0].toLowerCase();
+  }
+  if (["mihira", "mihiru"].includes(n.id)) n.variantGroup = "mihira";
+  if (["piumi", "piyumi"].includes(n.id)) n.variantGroup = "piumi";
+  if (["pramod", "pamod"].includes(n.id)) n.variantGroup = "pramod";
+  if (["sasini", "shashini"].includes(n.id)) n.variantGroup = "sasini";
+}
 export function allowedNames(
   letters: string[],
   gender: string,
@@ -225,4 +366,33 @@ export function allowedNames(
       (includeReview || n.meaningStatus === "sourced") &&
       letters.some((l) => nameMatchesLetter(n.sinhala, n.roman, l)),
   );
+}
+
+/** Both counts are explicit: permitted base-consonant matches are not exact pada matches. */
+export function catalogueCoverage(
+  letters: string[],
+  gender: string,
+  religion: ReligionContext = "buddhist",
+  traditional = false,
+  includeReview = false,
+) {
+  return [...new Set(letters)].map((letter) => {
+    const matches = allowedNames(
+      [letter],
+      gender,
+      religion,
+      traditional,
+      includeReview,
+    );
+    return {
+      letter,
+      exactCount: matches.filter((n) =>
+        n.sinhala.normalize("NFC").startsWith(letter.normalize("NFC")),
+      ).length,
+      allowedCount: matches.length,
+      examples: matches
+        .slice(0, 3)
+        .map((n) => ({ sinhala: n.sinhala, roman: n.roman })),
+    };
+  });
 }

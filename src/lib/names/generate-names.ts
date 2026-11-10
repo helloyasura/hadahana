@@ -1,6 +1,6 @@
 /**
- * Agentic modern name studio (public API).
- * Orchestration runs through the LangGraph naming harness.
+ * Source-linked, culture-aware name catalogue (public API).
+ * Public suggestions never call an AI model or invent meanings.
  */
 
 import { namThebimaOnly, type BirthInput } from "@/lib/astrology/kendraya";
@@ -25,7 +25,7 @@ import {
 import type { LetterSource, SuggestedName } from "@/lib/names/types";
 import { NAME_COUNT_DEFAULT, clampNameCount } from "@/lib/names/name-count";
 import { buildLearningSnapshot } from "@/lib/names/feedback-store";
-import { allowedNames } from "./catalogue";
+import { catalogueCoverage } from "./catalogue";
 import { curatedNames } from "./curated-names";
 
 export type {
@@ -89,6 +89,7 @@ function parseManualLetters(raw?: string[]): string[] {
 
 export async function suggestModernNames(input: NameSuggestInput): Promise<{
   unmatchedLetters: string[];
+  letterCoverage: ReturnType<typeof catalogueCoverage>;
   letters: {
     primary: string;
     primaryRoman: string;
@@ -221,17 +222,18 @@ export async function suggestModernNames(input: NameSuggestInput): Promise<{
     variation: input.variation,
   });
 
+  const letterCoverage = catalogueCoverage(
+    firstLetters,
+    gender,
+    religionContext,
+    input.includeTraditional,
+    input.includeReview,
+  );
   return {
-    unmatchedLetters: firstLetters.filter(
-      (l) =>
-        !allowedNames(
-          [l],
-          gender,
-          religionContext,
-          input.includeTraditional,
-          input.includeReview,
-        ).length,
-    ),
+    letterCoverage,
+    unmatchedLetters: letterCoverage
+      .filter((c) => !c.allowedCount)
+      .map((c) => c.letter),
     letters: lettersMeta,
     letterSource,
     livingCountry: country,

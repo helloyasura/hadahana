@@ -85,12 +85,15 @@ jobs:
           docker volume create "$volume" >/dev/null
           trap 'docker volume rm "$volume" >/dev/null' EXIT
           HANDAHANA_IMAGE=hadahana:pdf-pr docker compose -p "$project" config --quiet
-          docker run --rm --network=none --user=0:0 -v "$volume:/var/lib/handahana" --entrypoint sh hadahana:pdf-pr -c 'chown 0:0 /var/lib/handahana && chmod 755 /var/lib/handahana'
+          # Keep the simulated legacy volume nonempty: Docker copy-up refreshes
+          # ownership of empty volumes from the fixed image before the next run.
+          docker run --rm --network=none --user=0:0 -v "$volume:/var/lib/handahana" --entrypoint sh hadahana:pdf-pr -c 'printf preserved-legacy-data > /var/lib/handahana/legacy-fixture.txt && chown -R 0:0 /var/lib/handahana && chmod 755 /var/lib/handahana'
           docker run --rm --network=none -v "$volume:/var/lib/handahana" --entrypoint sh hadahana:pdf-pr -c 'test ! -w /var/lib/handahana'
           HANDAHANA_IMAGE=hadahana:pdf-pr docker compose -p "$project" run --rm --no-deps handahana-data-init
           docker run --rm --network=none --memory=128m --pids-limit=32 -v "$volume:/var/lib/handahana" --entrypoint node hadahana:pdf-pr -e '
             const fs=require("node:fs"), assert=require("node:assert/strict");
             assert.equal(process.getuid(),1001);
+            assert.equal(fs.readFileSync("/var/lib/handahana/legacy-fixture.txt","utf8"),"preserved-legacy-data");
             fs.writeFileSync("/var/lib/handahana/test.tmp", "feedback");
             fs.renameSync("/var/lib/handahana/test.tmp", "/var/lib/handahana/test.json");
             assert.equal(fs.readFileSync("/var/lib/handahana/test.json","utf8"),"feedback");
