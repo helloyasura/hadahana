@@ -16,6 +16,8 @@ COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-handahana}"
 HANDAHANA_IMAGE_ARCHIVE="${HANDAHANA_IMAGE_ARCHIVE:-}"
 
 cd "$DEPLOY_PATH"
+# Env files hold the OpenAI key: keep them readable by root only.
+chmod 600 .env .env.bootstrap 2>/dev/null || true
 
 if [[ ! -f .env ]]; then
   echo "Missing ${DEPLOY_PATH}/.env — copy .env.example and set OPENAI_API_KEY / HANDAHANA_IMAGE."
@@ -68,7 +70,7 @@ compose up -d --no-build --remove-orphans
 echo "Waiting for Handahana health on loopback :${HANDAHANA_PORT:-4132}…"
 base="${NEXT_PUBLIC_BASE_PATH:-/hadahana}"
 ok=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 45); do
   # Prefer /hadahana (no trailing slash); Next may 308 /hadahana/ → /hadahana
   if curl -fsS -L "http://127.0.0.1:${HANDAHANA_PORT:-4132}${base}" >/dev/null 2>&1 \
     || curl -fsS -L "http://127.0.0.1:${HANDAHANA_PORT:-4132}${base}/" >/dev/null 2>&1; then
