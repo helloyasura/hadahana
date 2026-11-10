@@ -13,7 +13,7 @@
     "verify:agent": "tsx scripts/verify-agent.mts",
     "verify:names": "npx tsx scripts/verify-names.mts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/verify-asiri.mts && tsx scripts/verify-factor-align.mts && tsx scripts/verify-feedback.mts && tsx scripts/verify-nakath-finder.mts && tsx scripts/verify-names.mts",
+    "test": "tsx scripts/verify-asiri.mts && tsx scripts/verify-factor-align.mts && tsx scripts/verify-feedback.mts && tsx scripts/verify-nakath-finder.mts && tsx scripts/verify-names.mts && tsx --test scripts/verify-analytics.mts",
     "test:ui": "node scripts/ui-redesign.mjs"
   },
   "dependencies": {
