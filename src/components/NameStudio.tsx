@@ -175,7 +175,7 @@ export function NameStudio({
       try {
         const res = await fetch(apiUrl("/api/names/suggest"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
           body: JSON.stringify({
             birth: letterSource === "chart" || birth.date ? birth : undefined,
             motherName: motherName || undefined,
@@ -248,7 +248,7 @@ export function NameStudio({
     try {
       const res = await fetch(apiUrl("/api/names/feedback"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
         body: JSON.stringify({
           action,
           target,
@@ -291,7 +291,7 @@ export function NameStudio({
     try {
       const res = await fetch(apiUrl("/api/names/reshuffle"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
         body: JSON.stringify({
           part,
           current: n,

@@ -1,3 +1,4 @@
+import { requireFeature } from "@/lib/account/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { matchPorondam } from "@/lib/astrology/porondam";
@@ -11,6 +12,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   try {
     const body = bodySchema.parse(await req.json());
     const result = await matchPorondam(body.personA, body.personB);

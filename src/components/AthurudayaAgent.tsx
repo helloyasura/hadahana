@@ -55,7 +55,7 @@ export function AthurudayaAgent({
         track("agent_message_sent");
         const res = await fetch(apiUrl("/api/agent/chat"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
           body: JSON.stringify({
             messages: next,
             birth: {

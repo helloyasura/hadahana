@@ -1,3 +1,4 @@
+import { apiUrl } from "./base-path";
 import { track } from "./analytics";
 
 /**
@@ -119,7 +120,12 @@ export function clearPrintAttributes() {
   host?.style.removeProperty("--print-scale");
 }
 
-export function runPrint(mode: PrintMode, paper: PrintPaper = "A4") {
+export async function runPrint(mode: PrintMode, paper: PrintPaper = "A4") {
+  try {
+    const response = await fetch(apiUrl("/api/access"), { cache: "no-store" });
+    const status = await response.json();
+    if (!response.ok) { window.alert(status.error || "Sign in with an active license before printing."); return; }
+  } catch { window.alert("Unable to verify your license. Please try again."); return; }
   track("tool_used", { tool: "export" });
   track("chart_printed", { mode, paper });
   applyPrintAttributes(mode, paper);

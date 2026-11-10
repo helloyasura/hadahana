@@ -1,3 +1,4 @@
+import { requireFeature } from "@/lib/account/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -20,7 +21,8 @@ const postSchema = z.object({
   sessionId: z.string().max(80).optional(),
 });
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   try {
     const store = await loadFeedbackStore();
     const learning = await buildLearningSnapshot(store);
@@ -45,6 +47,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   try {
     const body = postSchema.parse(await req.json());
     const { store, touched } = await recordFeedback(body);

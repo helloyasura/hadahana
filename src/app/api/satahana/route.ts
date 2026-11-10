@@ -1,3 +1,4 @@
+import { requireFeature } from "@/lib/account/server";
 import { NextResponse } from "next/server";
 import { birthSchema } from "@/lib/astrology/birth-schema";
 import { buildSatahana } from "@/lib/astrology/satahana";
@@ -5,6 +6,7 @@ import { buildSatahana } from "@/lib/astrology/satahana";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   try {
     const body = birthSchema.parse(await req.json());
     const satahana = await buildSatahana(body);
