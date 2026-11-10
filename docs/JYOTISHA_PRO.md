@@ -6,9 +6,10 @@ Implemented inside Hadahana, isolated under `/pro` (production base path: `/hada
 No DNS, nginx, new repository, production deployment or changes to consumer/LUMS tables.
 The native/WASM engine packages are server-externalized and their assets explicitly traced to
 avoid Next bundling WASM into an unusable relative browser asset URL in server calculations.
-This is **not ready for public/paid launch**: the Pro-specific LUMS adapter contract below
-must first be implemented and reviewed upstream. Until then all real OTP requests,
-preset/link creation and public calculations fail closed (503), not a local mock trial.
+This is **not ready for public/paid launch**: the companion LUMS Pro backend must be
+reviewed, merged/deployed and configured first. The real client is wired to that backend;
+missing configuration, unavailable endpoints or invalid responses still fail closed (503),
+not a local mock trial.
 No production mock, backdoor account or automatic customer messaging exists.
 
 **Swiss Ephemeris AGPL obligations or an appropriate professional/commercial licence
@@ -38,8 +39,9 @@ Required to enable the pilot:
 - `PRO_STORAGE_KEY`: independent random secret, minimum 32 characters; AES-256-GCM storage key.
 - `PRO_DATA_PATH`: persistent private encrypted file; Compose uses `/var/lib/handahana/jyotisha-pro.enc`.
 - `PRO_PUBLIC_ORIGIN`: exact browser origin, e.g. `https://ervanta.com` (no path/trailing slash).
-- `PRO_LUMS_API_URL`: upstream base URL, without `/jyotisha-pro`; HTTPS in production.
-- `PRO_LUMS_SERVICE_KEY`: independent, scoped server-to-server Pro service credential.
+- `PRO_LUMS_API_URL`: HTTPS API base **including `/api`**, without `/jyotisha-pro`.
+- `PRO_LUMS_SERVICE_KEY`: independent scoped server-to-server Pro credential, minimum 32 characters;
+  must match LUMS. `PRO_OTP_HASH_KEY` belongs on LUMS only, never Hadahana/browser.
 - `PRO_TRUST_PROXY`: default `0`. Only use `1` after the existing reverse proxy is confirmed to
   overwrite `X-Real-IP`, never pass a caller-supplied value. With `0`, IP buckets are intentionally
   shared across the small private pilot. Per-email/per-link/global limits still apply.
@@ -51,40 +53,54 @@ process before enabling Pro. No secrets were created or changed by this PR. In f
 separate Pro credentials/storage volume and a separately deployed app at `pro.ervanta.com`.
 Never rotate the storage key without an explicit decrypt/re-encrypt migration and tested backup.
 
-## LUMS adapter contract — STUBBED upstream, fail-closed
+## Real LUMS Pro integration — fail-closed
 
-`src/lib/pro/lums.ts` is the real HTTP client, not a consumer auth wrapper. It calls these **new,
-currently unimplemented LUMS endpoints**. The upstream addition is a follow-up, not part of this PR.
-Do not point it at consumer `/hadahana` endpoints. Integration tests use an isolated local mock,
-never real LUMS, SMTP, real users or emails.
+`src/lib/pro/lums.ts` calls the isolated endpoints implemented by [LUMS #42](https://github.com/helloyasura/lums/pull/42).
+Do not point it at consumer `/hadahana` auth. No upstream implementation is stubbed in this
+client. Tests still use a synthetic mock transport, never real LUMS, SMTP, users or emails.
 
-Every call uses `Authorization: Bearer PRO_LUMS_SERVICE_KEY`; upstream must restrict this credential
-to the Pro product/audience, apply request-size limits and never log OTPs/credentials/bodies.
+Every call sends `Authorization: Bearer PRO_LUMS_SERVICE_KEY`; production requires HTTPS,
+redirects are forbidden, requests time out after 10 seconds, and responses are not cached.
+Start/verify optionally forward a valid `x-jyotisha-pro-client-ip` from `requestIdentity`;
+this is accepted upstream only after service-key authentication. With `PRO_TRUST_PROXY=0`,
+no supplied public forwarded header is trusted; LUMS applies its socket-peer IP bucket.
+LUMS 429 status is preserved for user retry. Network/config/schema errors remain 503.
 
-1. `POST /jyotisha-pro/auth/start`
-   - Input: `{ email, intent: "login"|"register", audience: "JYOTISHA_PRO" }`
-   - Output: `{ challengeId }` (opaque, >=16 characters).
-   - Required upstream: separate Pro identity/OTP tables/audience, email OTP delivered through
-     existing secure SMTP pattern; hashed OTP, 10-minute TTL, >=60-second resend cooldown,
-     3 sends/email/hour, IP/global limits, maximum 5 failed attempts, constant generic response,
-     purpose binding, superseding earlier challenges, atomic single use. No consumer account
-     lookup may authenticate a Pro identity. No plaintext code in responses/logs.
-2. `POST /jyotisha-pro/auth/verify`
-   - Input: `{ challengeId, code, audience: "JYOTISHA_PRO" }`
-   - Output: `{ audience: "JYOTISHA_PRO", verified: true, subject, email }`.
-   - `subject` must be stable and Pro-specific. Upstream consumes the challenge atomically.
-   - Wrong code returns 400/401; no verified subject until success. Locally pending cookies hold
-     only a 256-bit token, with challenge email/purpose stored encrypted. Local attempts are
-     committed before the remote call, maximum five; success consumes local pending record.
-3. `POST /jyotisha-pro/entitlement`
+1. `POST /api/jyotisha-pro/auth/start`
+   - Input: `{ email, intent: "login"|"register", audience: "JYOTISHA_PRO" }`.
+   - Output: `{ challengeId }` (opaque 256-bit token, exactly 64 lowercase hex characters).
+   - Separate Pro identity/OTP tables; HMAC-hashed code, 10-minute TTL, 60-second resend
+     cooldown, 3 email requests/hour, persisted IP/challenge limits, five failed attempts,
+     constant-time comparison, generic start response, supersession and atomic single use.
+2. `POST /api/jyotisha-pro/auth/verify`
+   - Input: `{ challengeId, code, audience: "JYOTISHA_PRO" }`.
+   - Output: `{ audience: "JYOTISHA_PRO", verified: true, subject: "<Pro UUID>", email }`.
+   - Successful verified signup **atomically issues the one-time 20-day JYOTISHA_PRO trial**.
+     A durable normalized-email claim prevents another trial after deletion/key rotation.
+     Existing Pro identity login reuses its subject and never resets the trial; consumer
+     User/JWT/cookies never authenticate this endpoint.
+   - Locally pending cookies hold only a 256-bit token. Local attempts are committed before
+     the remote call, maximum five; success consumes the encrypted pending record.
+3. `POST /api/jyotisha-pro/entitlement`
    - Input: `{ subject, product: "JYOTISHA_PRO", trialDays: 20 }`.
    - Output: `{ product: "JYOTISHA_PRO", active: boolean, expiresAt: ISO-UTC, kind: "trial"|"paid" }`.
-   - Registration verification calls this contract to start the trial. Atomically provision **one**
-     20-day trial per verified Pro subject if appropriate, never renew
-     it per request; separate product/SKU/entitlement from HADAHANA. Resolve paid licence status
-     and expiry server-side. Consumer membership must not satisfy this request. Product/audience
-     mismatch, inactive licence, expired licence, network or response-schema error fails closed.
-   - No paid checkout or pricing commitments in this pilot; users renew through LUMS separately.
+   - **Read-only** status lookup. Registration confirms it after upstream verification;
+     it does not create or extend any trial. UUID/audience/product/expiry response checks
+     and current server-side entitlement enforce fail-closed access.
+   - Finite company expiry is required; generic one-time/null-expiry licences are inactive.
+     `paid` reflects extension beyond original trial, not payment-settlement proof.
+
+LUMS adds four new Pro tables plus new SKU/licence-owner catalog rows with an additive-only
+migration; this Hadahana branch needs **no SQL migration** and keeps its existing separate
+encrypted Pro file. Trial start, expiry and renewal follow existing Customer Desk events.
+No paid checkout/pricing commitment is added. Renew the linked Pro Company with a finite term.
+
+Merge/deploy **LUMS first**, configure its `PRO_LUMS_SERVICE_KEY`, `PRO_OTP_HASH_KEY` and existing
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`; then configure
+Hadahana's API base/shared key/storage/origin and merge this PR. LUMS #41 was unmerged when
+implemented; the companion includes its identical sensitive-mail/privacy safeguards, so no
+hard #41 merge dependency, but working TLS SMTP is mandatory. Retain both additive model/
+migration sets if resolving conflicts with #41. No real email/production data smoke test was run.
 
 ## Shared calculation engine
 
