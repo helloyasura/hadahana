@@ -50,7 +50,7 @@ jobs:
           before=$(docker image inspect hadahana:pdf-base --format '{{.Size}}')
           after=$(docker image inspect hadahana:pdf-pr --format '{{.Size}}')
           echo "### Server PDF image budget" >> "$GITHUB_STEP_SUMMARY"
-          echo "Baseline image: $before bytes; PDF image: $after bytes; delta: $((after-before)) bytes (uncompressed local image sizes)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Baseline image: $before bytes; PDF image: $after bytes; delta: $((after-before)) bytes (uncompressed local image sizes)." | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Offline PDF smoke under container resource caps
         run: |
           timeout 60s docker run --rm --network=none --memory=768m --memory-swap=768m --cpus=0.5 --pids-limit=128 --entrypoint node hadahana:pdf-pr -e '
