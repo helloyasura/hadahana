@@ -1,5 +1,6 @@
 "use client";
 
+import { DoshaPeriods } from "@/components/DoshaPeriods";
 import { AccountPanel } from "@/components/AccountPanel";
 import type { Profile } from "@/lib/account/types";
 import { track } from "@/lib/analytics";
@@ -116,6 +117,7 @@ export function Workspace() {
     document.documentElement.lang = lang;
   }, [lang]);
   const [tab, setTab] = useState<Tab>("chart");
+  const [predictionView, setPredictionView] = useState<"summary" | "periods">("summary");
   const [birth, setBirth] = useState<BirthForm>(DEFAULT_BIRTH);
   const [partner, setPartner] = useState<BirthForm>({
     ...DEFAULT_BIRTH,
@@ -600,6 +602,11 @@ export function Workspace() {
 
           {tab === "palapala" && palapala ? (
             <div className="stack">
+              <nav className="prediction-options" aria-label="පලාපල / Predictions">
+                <button type="button" aria-pressed={predictionView === "summary"} onClick={() => setPredictionView("summary")}>පලාපල සාරාංශය / Summary</button>
+                <button type="button" aria-pressed={predictionView === "periods"} onClick={() => setPredictionView("periods")}>අරිෂ්ට / දෝෂ කාල · Challenging periods</button>
+              </nav>
+              {predictionView === "periods" ? <DoshaPeriods key={String(castData?.horoscopeId)} horoscopeId={String(castData?.horoscopeId)} /> : <>
               <ul className="plain">
                 {(
                   (lang === "si"
@@ -633,6 +640,7 @@ export function Workspace() {
                   ),
                 )}
               </div>
+              </>}
             </div>
           ) : null}
 
