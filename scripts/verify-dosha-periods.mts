@@ -33,6 +33,7 @@ for(const p of report.periods){
 }
 const v=vimshottari(chart.chandra.longitude,chart.native.utcTime);
 const firstAntar=report.periods.find(p=>p.current && p.kind==='dasha')!;
+assert(firstAntar.clippedStart, 'Birth clips the already-running antardasha');
 assert(firstAntar.titleEn.includes(v.antar[0].lord)); assert.equal(firstAntar.endUtc,v.antar[0].end);
 const transits=report.periods.filter(p=>p.kind==='transit');
 const ephe=EphemerisService.getInstance(); await ephe.init(); ephe.setAyanamsa('lahiri');

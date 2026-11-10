@@ -86,7 +86,7 @@ export async function difficultPeriods(chart: Chart, asOf = new Date()): Promise
       const subEnd = i === 8 ? cursor + duration : sub + duration * YEARS[subIdx] / 120;
       const minor = lordIssues(chart, subLord);
       const reasons = [...major.reasons.map(r => `${grahaLabel(lord).sinhala} (${lord}) මහ දසා: ${r}`), ...minor.reasons.map(r => `${grahaLabel(subLord).sinhala} (${subLord}) අන්තර් දසා: ${r}`)];
-      if (reasons.length) add("dasha", `${grahaLabel(lord).sinhala} / ${grahaLabel(subLord).sinhala} දසා`, `${lord} / ${subLord} dasha`, Math.max(sub, birth), subEnd, [...new Set([lord, subLord])], [...new Set([...major.houses, ...minor.houses])], reasons, reasons.length >= 4 ? "high" : reasons.length >= 2 ? "medium" : "low");
+      if (reasons.length) add("dasha", `${grahaLabel(lord).sinhala} / ${grahaLabel(subLord).sinhala} දසා`, `${lord} / ${subLord} dasha`, sub, subEnd, [...new Set([lord, subLord])], [...new Set([...major.houses, ...minor.houses])], reasons, reasons.length >= 4 ? "high" : reasons.length >= 2 ? "medium" : "low");
       sub = subEnd;
     }
     cursor += duration;
