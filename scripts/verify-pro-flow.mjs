@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -14,14 +14,19 @@ const origin = "http://127.0.0.1:4177",
   base = "/hadahana",
   api = `${origin}${base}/pro/api`;
 const challenges = new Map(),
-  expired = new Set();
+  expired = new Set(),
+  subjects = new Map();
+const subjectFor = (email) => {
+  if (!subjects.has(email)) subjects.set(email, randomUUID());
+  return subjects.get(email);
+};
 const mock = createServer(async (req, res) => {
   let raw = "";
   for await (const part of req) raw += part;
   const body = JSON.parse(raw || "{}");
   res.setHeader("Content-Type", "application/json");
   if (req.url === "/jyotisha-pro/auth/start") {
-    const id = randomBytes(24).toString("hex");
+    const id = randomBytes(32).toString("hex");
     challenges.set(id, body.email);
     res.end(JSON.stringify({ challengeId: id }));
   } else if (req.url === "/jyotisha-pro/auth/verify") {
@@ -37,7 +42,7 @@ const mock = createServer(async (req, res) => {
         audience: "JYOTISHA_PRO",
         verified: true,
         email,
-        subject: `pro:${email}`,
+        subject: subjectFor(email),
       }),
     );
   } else if (req.url === "/jyotisha-pro/entitlement") {
@@ -76,7 +81,8 @@ const app = spawn(
       PRO_DATA_PATH: path.join(dir, "data.enc"),
       PRO_PUBLIC_ORIGIN: origin,
       PRO_LUMS_API_URL: `http://127.0.0.1:${mock.address().port}`,
-      PRO_LUMS_SERVICE_KEY: "synthetic-harness-only",
+      PRO_LUMS_SERVICE_KEY:
+        "synthetic-harness-service-key-at-least-32-characters",
       NEXT_PUBLIC_POSTHOG_KEY: "",
       NEXT_PUBLIC_GA_MEASUREMENT_ID: "",
     },
@@ -280,7 +286,7 @@ try {
     }),
     200,
   );
-  expired.add("pro:pilot-a@example.test");
+  expired.add(subjectFor("pilot-a@example.test"));
   await check(await post(context, `/public/${shared.token}`, synthetic), 402);
   await check(
     await context.request.get(`${api}/workspace?client=${saved.clients[0].id}`),
@@ -383,7 +389,7 @@ try {
     401,
   );
   await locked.close();
-  expired.add("pro:pilot-a@example.test");
+  expired.add(subjectFor("pilot-a@example.test"));
   for (let i = 0; i < 3; i++)
     await check(await post(context, `/public/${shared.token}`, synthetic), 402);
   await check(await post(context, `/public/${shared.token}`, synthetic), 429);
@@ -395,7 +401,7 @@ try {
     }),
     404,
   );
-  expired.add("pro:pilot-a@example.test");
+  expired.add(subjectFor("pilot-a@example.test"));
   await check(
     await post(context, "/workspace", {
       action: "deleteClient",
