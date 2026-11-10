@@ -58,7 +58,11 @@ export async function POST(req: Request) {
         ))
       )
         throw new ProError("නව කේතයක් ඉල්ලීමට පෙර රැඳී සිටින්න.", 429);
-      const remote = await startVerification(body.email, body.intent);
+      const remote = await startVerification(
+        body.email,
+        body.intent,
+        requestIdentity(req),
+      );
       const token = opaqueToken();
       await transaction((db) => {
         db.challenges = db.challenges.filter((c) => c.email !== body.email);
@@ -90,10 +94,14 @@ export async function POST(req: Request) {
     });
     if (!challenge)
       throw new ProError("කේතය කල් ඉකුත් වී ඇත. නව කේතයක් ඉල්ලන්න.", 401);
-    const verified = await verifyEmail(challenge.remoteId, body.code);
+    const verified = await verifyEmail(
+      challenge.remoteId,
+      body.code,
+      requestIdentity(req),
+    );
     if (verified.email.toLowerCase() !== challenge.email)
       throw new ProError("Verification mismatch", 401);
-    // The upstream contract idempotently starts the separate 20-day Pro trial on registration.
+    // LUMS issues the one-time 20-day trial inside verified signup. This call is read-only.
     if (challenge.intent === "register") await entitlement(verified.subject);
     const token = opaqueToken();
     await transaction((db) => {
