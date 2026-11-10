@@ -1,3 +1,5 @@
+import { vimshottari } from "./vimshottari";
+import { birthDay } from "./birth-day";
 import { computeChart } from "vpv-panchangam";
 import {
   degreesInNakshatra,
@@ -7,7 +9,6 @@ import {
 import {
   LAGNA_LETTERS,
   WEEKDAY_LETTERS,
-  weekdayIndexFromYmd,
 } from "./letter-pools";
 import { resolvePlace } from "./places";
 import { BHAVA, grahaLabel, rashiLabel } from "./sinhala-names";
@@ -129,7 +130,8 @@ export async function castKendraya(input: BirthInput) {
   const border = padaBorderWarning(moon.longitude);
   const lagnaRashi = rashiLabel(raw.ascendant.sign);
   const chandraRashi = rashiLabel(moon.sign);
-  const weekday = weekdayIndexFromYmd(date, time);
+  const day = await birthDay(date, raw.birth.utc_time, place.latitude, place.longitude, place.timezone);
+  const weekday = day.weekday;
   const weekdayLetters = WEEKDAY_LETTERS[weekday] ?? [];
   const lagnaLetters = LAGNA_LETTERS[lagnaRashi.english] ?? [];
   const especiallyGood = letterSet.allRecommendedSinhala.filter(
@@ -171,12 +173,8 @@ export async function castKendraya(input: BirthInput) {
       .map((g) => g.graha);
   }
 
-  const mahaDasha = (raw.dasha as Array<{
-    lord: string;
-    start: string;
-    end: string;
-    years: number;
-  }>).map((d) => ({
+  const dasha = vimshottari(moon.longitude, raw.birth.utc_time);
+  const mahaDasha = dasha.maha.map((d) => ({
     lord: d.lord,
     lordSinhala: grahaLabel(d.lord).sinhala,
     startUtc: d.start,
@@ -185,20 +183,11 @@ export async function castKendraya(input: BirthInput) {
   }));
 
   const currentMaha = mahaDasha[0];
-  const antar = (
-    raw.dasha_antar as Array<{
-      lord: string;
-      antardashas: Array<{ lord: string; start: string; end: string }>;
-    }>
-  )[0];
-  const currentAntar = antar?.antardashas?.[0]
-    ? {
-        mahaLord: antar.lord,
-        antarLord: antar.antardashas[0].lord,
-        startUtc: antar.antardashas[0].start,
-        endUtc: antar.antardashas[0].end,
-      }
-    : null;
+  const firstAntar = dasha.antar[0];
+  const currentAntar = firstAntar ? {
+    mahaLord: currentMaha.lord, antarLord: firstAntar.lord,
+    startUtc: firstAntar.start, endUtc: firstAntar.end,
+  } : null;
 
   const kalsarpa = raw.kalsarpa as {
     present: boolean;
@@ -308,6 +297,7 @@ export async function castKendraya(input: BirthInput) {
     ),
     vimshottari: {
       balanceAtBirth: currentMaha,
+      convention: { yearDays: dasha.yearDays, elapsedFraction: dasha.elapsedFraction },
       currentAntardashaAtBirth: currentAntar,
       mahaDashas: mahaDasha,
     },
