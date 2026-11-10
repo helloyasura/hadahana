@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/analytics";
 import { useEffect, useState, useTransition } from "react";
 import {
   AstralWheel,
@@ -134,6 +135,7 @@ export function Workspace() {
   const letterSet = nam?.letterSet as Record<string, unknown> | undefined;
 
   function runCast() {
+    track("tool_used", { tool: "chart" });
     setError(null);
     startTransition(async () => {
       try {
@@ -145,6 +147,7 @@ export function Workspace() {
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || t(lang, "error"));
         setCastData(json);
+        track("chart_generated");
         setTab("chart");
       } catch (e) {
         setError(e instanceof Error ? e.message : t(lang, "error"));
@@ -153,6 +156,7 @@ export function Workspace() {
   }
 
   function runPorondam() {
+    track("tool_used", { tool: "porondam" });
     setError(null);
     startTransition(async () => {
       try {
@@ -167,6 +171,7 @@ export function Workspace() {
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || t(lang, "error"));
         setPorondamData(json);
+        track("compatibility_calculated");
         setTab("porondam");
       } catch (e) {
         setError(e instanceof Error ? e.message : t(lang, "error"));
@@ -175,6 +180,7 @@ export function Workspace() {
   }
 
   function runMuhurta() {
+    track("tool_used", { tool: "muhurta" });
     setError(null);
     startTransition(async () => {
       try {
@@ -189,6 +195,7 @@ export function Workspace() {
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || t(lang, "error"));
         setMuhurtaData(json);
+        track("nakath_calculated", { tool: "muhurta" });
         setTab("muhurta");
       } catch (e) {
         setError(e instanceof Error ? e.message : t(lang, "error"));
@@ -197,6 +204,7 @@ export function Workspace() {
   }
 
   function runPanchanga() {
+    track("tool_used", { tool: "panchanga" });
     setError(null);
     startTransition(async () => {
       try {
@@ -211,6 +219,7 @@ export function Workspace() {
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || t(lang, "error"));
         setPanchangaData(json);
+        track("panchanga_calculated");
         setTab("panchanga");
       } catch (e) {
         setError(e instanceof Error ? e.message : t(lang, "error"));
@@ -220,6 +229,8 @@ export function Workspace() {
 
   function downloadJson() {
     if (!castData) return;
+    track("tool_used", { tool: "export" });
+    track("chart_exported", { mode: "json" });
     const blob = new Blob([JSON.stringify(castData, null, 2)], {
       type: "application/json",
     });
@@ -281,7 +292,7 @@ export function Workspace() {
               type="button"
               className={lang === "si" ? "active" : ""}
               aria-pressed={lang === "si"}
-              onClick={() => setLang("si")}
+              data-analytics-safe="true" onClick={() => { setLang("si"); track("language_changed", { language: "si" }); }}
             >
               සිංහල
             </button>
@@ -289,7 +300,7 @@ export function Workspace() {
               type="button"
               className={lang === "en" ? "active" : ""}
               aria-pressed={lang === "en"}
-              onClick={() => setLang("en")}
+              data-analytics-safe="true" onClick={() => { setLang("en"); track("language_changed", { language: "en" }); }}
             >
               English
             </button>
@@ -449,7 +460,8 @@ export function Workspace() {
             className={tab === tabItem.id ? "active" : ""}
             aria-pressed={tab === tabItem.id}
             aria-controls="workspace-results"
-            onClick={() => setTab(tabItem.id)}
+            data-analytics-safe="true"
+            onClick={() => { setTab(tabItem.id); track("tool_opened", { tool: tabItem.id }); if (castData && ["chart", "palapala", "dosha"].includes(tabItem.id)) track("tool_used", { tool: tabItem.id }); }}
           >
             {t(lang, tabItem.key)}
           </button>

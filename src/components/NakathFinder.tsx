@@ -1,5 +1,7 @@
 "use client";
 
+import { track } from "@/lib/analytics";
+
 import { useMemo, useState, useTransition } from "react";
 import type { Lang } from "@/lib/i18n";
 import {
@@ -110,12 +112,14 @@ export function NakathFinder({
           body.toDate = toDate;
           body.limit = 25;
         }
+        track("tool_used", { tool: "muhurta" });
         const res = await fetch(apiUrl("/api/nakath/suitable"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
         const json = await res.json();
+        if (json.ok) track("nakath_calculated", { tool: "finder" });
         if (!json.ok) throw new Error(json.error || "failed");
         setResult(json);
       } catch (e) {
