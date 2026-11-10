@@ -5,10 +5,6 @@
 
 import { namThebimaOnly, type BirthInput } from "@/lib/astrology/kendraya";
 import {
-  applyDeterministicFactors,
-  sortByAlignment,
-} from "@/lib/names/factor-align";
-import {
   buildHoroscopePersona,
   type HoroscopePersonaBrief,
 } from "@/lib/names/horoscope-persona";
@@ -27,21 +23,10 @@ import {
   type ReligionContext,
 } from "@/lib/names/personalities";
 import type { LetterSource, SuggestedName } from "@/lib/names/types";
-import {
-  loadCurrentUsage,
-  usagePromptSample,
-  verifyNameAgainstUsage,
-} from "@/lib/names/current-usage";
-import {
-  runNamingHarness,
-  selectPersonalities,
-} from "@/lib/names/harness";
-import {
-  NAME_COUNT_DEFAULT,
-  clampNameCount,
-} from "@/lib/names/name-count";
+import { NAME_COUNT_DEFAULT, clampNameCount } from "@/lib/names/name-count";
 import { buildLearningSnapshot } from "@/lib/names/feedback-store";
-import { applyLearningToNames } from "@/lib/names/reshuffle";
+import { allowedNames } from "./catalogue";
+import { curatedNames } from "./curated-names";
 
 export type {
   InterestId,
@@ -84,6 +69,10 @@ export type NameSuggestInput = {
   religionContext?: ReligionContext;
   nameLanguage?: NameLanguagePref;
   verifyCurrentUsage?: boolean;
+  includeTraditional?: boolean;
+  includeReview?: boolean;
+  excludePairs?: string[];
+  variation?: number;
 };
 
 function parseManualLetters(raw?: string[]): string[] {
@@ -98,41 +87,8 @@ function parseManualLetters(raw?: string[]): string[] {
   return out.slice(0, 16);
 }
 
-function applyUsageVerification(
-  names: SuggestedName[],
-  pack: Awaited<ReturnType<typeof loadCurrentUsage>>,
-): SuggestedName[] {
-  return names.map((n) => {
-    const v = verifyNameAgainstUsage(
-      n.first.roman,
-      n.middle.roman,
-      n.first.sinhala,
-      n.middle.sinhala,
-      pack,
-    );
-    const factors = n.factors
-      ? {
-          ...n.factors,
-          modernGenerationFit: Math.min(
-            100,
-            n.factors.modernGenerationFit + (v.anyHit ? 14 : 0),
-          ),
-        }
-      : n.factors;
-    return {
-      ...n,
-      factors,
-      score: Math.min(100, n.score + v.boost),
-      usageVerified: v.anyHit,
-      usageNoteSi: v.noteSi,
-      usageNoteEn: v.noteEn,
-      countryFitSi: `${n.countryFitSi} ${v.noteSi}`.trim(),
-      countryFitEn: `${n.countryFitEn} ${v.noteEn}`.trim(),
-    };
-  });
-}
-
 export async function suggestModernNames(input: NameSuggestInput): Promise<{
+  unmatchedLetters: string[];
   letters: {
     primary: string;
     primaryRoman: string;
@@ -148,12 +104,13 @@ export async function suggestModernNames(input: NameSuggestInput): Promise<{
   personalitiesUsed: NamingPersonalityId[];
   names: SuggestedName[];
   source:
+    | "curated"
     | "langgraph-ensemble"
     | "langgraph"
     | "openai-ensemble"
     | "openai"
     | "seed";
-  framework: "langgraph" | "seed";
+  framework: "langgraph" | "seed" | "curated";
   graphTrace: string[];
   horoscopePersona?: HoroscopePersonaBrief;
   learning?: {
@@ -175,8 +132,9 @@ export async function suggestModernNames(input: NameSuggestInput): Promise<{
   const gender = input.birth?.gender ?? "unspecified";
   const nameLanguage: NameLanguagePref = input.nameLanguage ?? "bilingual";
   const religionContext: ReligionContext =
-    input.religionContext ?? "unspecified";
-  const verifyUsage = input.verifyCurrentUsage !== false;
+    input.religionContext && input.religionContext !== "unspecified"
+      ? input.religionContext
+      : "buddhist";
 
   let primary = "";
   let primaryRoman = "";
@@ -237,8 +195,6 @@ export async function suggestModernNames(input: NameSuggestInput): Promise<{
     }
   }
 
-  const mode = input.personality ?? "ensemble";
-  const personalities = selectPersonalities(mode, country);
   const lettersMeta = {
     primary,
     primaryRoman,
@@ -248,66 +204,50 @@ export async function suggestModernNames(input: NameSuggestInput): Promise<{
     middle: middleLetters,
   };
 
-  const usagePack = verifyUsage
-    ? await loadCurrentUsage(country, nameLanguage)
-    : null;
-  const usageSample = usagePack ? usagePromptSample(usagePack) : undefined;
   const learning = await buildLearningSnapshot();
-
-  const harness = await runNamingHarness({
-    input: {
-      motherName: input.motherName,
-      fatherName: input.fatherName,
-      siblingNames: input.siblingNames,
-      interestsMother: input.interestsMother,
-      interestsFather: input.interestsFather,
-      sharedHopes: input.sharedHopes,
-      religionContext,
-      nameLanguage,
-    },
-    gender,
-    country,
-    letterSource,
-    primary,
-    primaryRoman,
+  const ranked = curatedNames({
     firstLetters,
     middleLetters,
-    personalities,
-    perCount: Math.max(
-      3,
-      Math.ceil(count / personalities.length) + (count <= 12 ? 2 : 1),
-    ),
-    targetCount: count,
-    currentUsageSample: usageSample,
-    model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-    horoscopePersona,
-    learning,
+    primary,
+    gender,
+    religion: religionContext,
+    traditional: input.includeTraditional,
+    includeReview: input.includeReview,
+    count,
+    excludePairs: [...(input.excludePairs ?? []), ...learning.dislikedFull],
+    excludeParts: [...learning.dislikedFirst, ...learning.dislikedMiddle],
+    letterSource,
+    country,
+    variation: input.variation,
   });
 
-  let ranked = harness.names;
-  if (!ranked.some((n) => n.factors)) {
-    ranked = applyDeterministicFactors(ranked, {
-      persona: horoscopePersona,
-      country,
-      nameLanguage,
-      religion: religionContext,
-    });
-  }
-  ranked = usagePack ? applyUsageVerification(ranked, usagePack) : ranked;
-  ranked = sortByAlignment(ranked);
-  ranked = applyLearningToNames(ranked, learning);
-
   return {
+    unmatchedLetters: firstLetters.filter(
+      (l) =>
+        !allowedNames(
+          [l],
+          gender,
+          religionContext,
+          input.includeTraditional,
+          input.includeReview,
+        ).length,
+    ),
     letters: lettersMeta,
     letterSource,
     livingCountry: country,
     nameLanguage,
     religionContext,
-    personalitiesUsed: harness.personalitiesUsed,
+    personalitiesUsed: ["sinhala_language"],
     names: ranked.slice(0, count),
-    source: harness.source,
-    framework: harness.framework,
-    graphTrace: harness.graphTrace,
+    source: "curated",
+    framework: "curated",
+    graphTrace: [
+      "curated_allowlist",
+      "culture_gender_letter_gates",
+      "meaning_review_gate",
+      "modern_readable_rank",
+      "diverse_pairs",
+    ],
     horoscopePersona,
     learning: {
       likedFirst: learning.likedFirst,
@@ -315,13 +255,11 @@ export async function suggestModernNames(input: NameSuggestInput): Promise<{
       likedMiddle: learning.likedMiddle,
       dislikedMiddle: learning.dislikedMiddle,
     },
-    usageVerification: usagePack
-      ? {
-          enabled: true,
-          live: usagePack.live,
-          sources: usagePack.sourceLabels,
-          verifiedCount: ranked.filter((n) => n.usageVerified).length,
-        }
-      : { enabled: false, live: false, sources: [], verifiedCount: 0 },
+    usageVerification: {
+      enabled: false,
+      live: false,
+      sources: [],
+      verifiedCount: 0,
+    },
   };
 }

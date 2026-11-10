@@ -38,12 +38,7 @@ const schema = z
       ])
       .optional(),
     preferPrimaryLetter: z.boolean().optional(),
-    count: z
-      .number()
-      .int()
-      .min(NAME_COUNT_MIN)
-      .max(NAME_COUNT_MAX)
-      .optional(),
+    count: z.number().int().min(NAME_COUNT_MIN).max(NAME_COUNT_MAX).optional(),
     letterSource: z.enum(["chart", "manual"]).optional(),
     manualFirstLetters: z.array(z.string().max(12)).max(16).optional(),
     manualMiddleLetters: z.array(z.string().max(12)).max(16).optional(),
@@ -60,6 +55,9 @@ const schema = z
       .optional(),
     nameLanguage: z.enum(["si", "en", "bilingual"]).optional(),
     verifyCurrentUsage: z.boolean().optional(),
+    includeTraditional: z.boolean().optional(),
+    includeReview: z.boolean().optional(),
+    excludePairs: z.array(z.string().max(180)).max(2048).optional(),
   })
   .superRefine((val, ctx) => {
     const source = val.letterSource ?? "chart";
@@ -83,7 +81,8 @@ const schema = z
   });
 
 export async function POST(req: Request) {
-  const denied = await requireFeature(req); if (denied) return denied;
+  const denied = await requireFeature(req);
+  if (denied) return denied;
   try {
     const body = schema.parse(await req.json());
     const result = await suggestModernNames({
@@ -104,8 +103,18 @@ export async function POST(req: Request) {
       religionContext: body.religionContext,
       nameLanguage: body.nameLanguage,
       verifyCurrentUsage: body.verifyCurrentUsage,
+      includeTraditional: body.includeTraditional,
+      includeReview: body.includeReview,
+      excludePairs: body.excludePairs,
     });
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json(
+      {
+        ok: true,
+        ...result,
+        exhausted: result.names.length < (body.count ?? NAME_COUNT_DEFAULT),
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ ok: false, error: message }, { status: 400 });

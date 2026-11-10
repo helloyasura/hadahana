@@ -1,48 +1,18 @@
 "use client";
-
-import { track } from "@/lib/analytics";
-
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Lang } from "@/lib/i18n";
+import type { SuggestedName, LetterSource } from "@/lib/names/types";
 import {
-  INTERESTS,
-  LIVING_COUNTRIES,
-  NAMING_PERSONALITIES,
-  NAME_LANGUAGE_OPTIONS,
   RELIGION_OPTIONS,
-  type InterestId,
-  type LivingCountry,
-  type NameLanguagePref,
-  type NamingPersonalityId,
   type ReligionContext,
 } from "@/lib/names/personalities";
-import type { LetterSource, SuggestedName } from "@/lib/names/types";
 import {
   NAME_COUNT_DEFAULT,
   NAME_COUNT_MAX,
-  NAME_COUNT_MIN,
   clampNameCount,
 } from "@/lib/names/name-count";
 import { apiUrl } from "@/lib/base-path";
-
-type LearningBrief = {
-  likedFirst: string[];
-  dislikedFirst: string[];
-  likedMiddle: string[];
-  dislikedMiddle: string[];
-};
-
-function ensureSessionId(): string {
-  if (typeof window === "undefined") return "server";
-  const key = "handahana-name-session";
-  let id = window.localStorage.getItem(key);
-  if (!id) {
-    id = `s_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
-    window.localStorage.setItem(key, id);
-  }
-  return id;
-}
-
+import { track } from "@/lib/analytics";
 type BirthPayload = {
   date: string;
   time: string;
@@ -53,15 +23,16 @@ type BirthPayload = {
   gender?: string;
   nativeName?: string;
 };
-
-function splitLetters(raw: string): string[] {
-  return raw
+const split = (s: string) =>
+  s
     .split(/[,،|/·•\s]+/)
-    .map((s) => s.trim())
+    .map((x) => x.trim())
     .filter(Boolean)
     .slice(0, 16);
-}
-
+const contextLabel = (id: ReligionContext, lang: Lang) => {
+  const r = RELIGION_OPTIONS.find((r) => r.id === id);
+  return r ? (lang === "si" ? r.si : r.en) : id;
+};
 export function NameStudio({
   lang,
   birth,
@@ -71,730 +42,362 @@ export function NameStudio({
   birth: BirthPayload;
   hasChart: boolean;
 }) {
-  const [letterSource, setLetterSource] = useState<LetterSource>("chart");
-  const [manualFirstRaw, setManualFirstRaw] = useState("");
-  const [manualMiddleRaw, setManualMiddleRaw] = useState("");
-  const [motherName, setMotherName] = useState("");
-  const [fatherName, setFatherName] = useState("");
-  const [siblingsRaw, setSiblingsRaw] = useState("");
-  const [sharedHopes, setSharedHopes] = useState("");
-  const [interestsMother, setInterestsMother] = useState<InterestId[]>([]);
-  const [interestsFather, setInterestsFather] = useState<InterestId[]>([]);
-  const [livingCountry, setLivingCountry] = useState<LivingCountry>("lk");
-  const [personality, setPersonality] = useState<
-    NamingPersonalityId | "ensemble"
-  >("ensemble");
-  const [religionContext, setReligionContext] =
-    useState<ReligionContext>("unspecified");
-  const [nameLanguage, setNameLanguage] =
-    useState<NameLanguagePref>("bilingual");
-  const [verifyCurrentUsage, setVerifyCurrentUsage] = useState(true);
-  const [preferPrimary, setPreferPrimary] = useState(true);
-  const [nameCount, setNameCount] = useState(NAME_COUNT_DEFAULT);
-  const [names, setNames] = useState<SuggestedName[]>([]);
-  const [letters, setLetters] = useState<{
-    primary: string;
-    primaryRoman: string;
-    all: string[];
-    first?: string[];
-    middle?: string[];
-  } | null>(null);
-  const [usedAgents, setUsedAgents] = useState<string[]>([]);
-  const [source, setSource] = useState<string>("");
-  const [framework, setFramework] = useState<string>("");
-  const [graphTrace, setGraphTrace] = useState<string[]>([]);
-  const [resultLetterSource, setResultLetterSource] = useState<string>("");
-  const [usageInfo, setUsageInfo] = useState<{
-    enabled: boolean;
-    live: boolean;
-    sources: string[];
-    verifiedCount: number;
-  } | null>(null);
-  const [personaSummary, setPersonaSummary] = useState<string>("");
-  const [learning, setLearning] = useState<LearningBrief | null>(null);
-  const [sessionId, setSessionId] = useState("");
-  const [feedbackBusy, setFeedbackBusy] = useState<string | null>(null);
-  const [picked, setPicked] = useState<SuggestedName | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
+  const si = lang === "si";
+  const [letterSource, setLetterSource] = useState<LetterSource>("chart"),
+    [firstRaw, setFirstRaw] = useState(""),
+    [middleRaw, setMiddleRaw] = useState("");
+  const [religion, setReligion] = useState<ReligionContext>("buddhist"),
+    [traditional, setTraditional] = useState(false),
+    [review, setReview] = useState(false),
+    [count, setCount] = useState(NAME_COUNT_DEFAULT);
+  const [names, setNames] = useState<SuggestedName[]>([]),
+    [letters, setLetters] = useState<{
+      primary: string;
+      first: string[];
+      middle: string[];
+    } | null>(null);
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [notice, setNotice] = useState(""),
+    [picked, setPicked] = useState<SuggestedName | null>(null);
+  const history = useRef<string[]>([]),
+    partHistory = useRef<string[]>([]),
+    session = useRef("");
+  // Freeze the constraints used for results; changing form controls must not reshuffle
+  // old names with a new religion or starting-letter set.
+  const resultOptions = useRef({ religion, traditional, review, letterSource });
   useEffect(() => {
-    setSessionId(ensureSessionId());
+    session.current = `names_${Math.random().toString(36).slice(2)}`;
   }, []);
-
-  const siblingNames = useMemo(
-    () =>
-      siblingsRaw
-        .split(/[,،\n]/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-    [siblingsRaw],
-  );
-
-  const countryHint = LIVING_COUNTRIES.find((c) => c.id === livingCountry);
-  const manualFirstLetters = useMemo(
-    () => splitLetters(manualFirstRaw),
-    [manualFirstRaw],
-  );
-  const manualMiddleLetters = useMemo(
-    () => splitLetters(manualMiddleRaw),
-    [manualMiddleRaw],
-  );
-
-  function toggleInterest(which: "mother" | "father", id: InterestId) {
-    const cur = which === "mother" ? interestsMother : interestsFather;
-    const next = cur.includes(id)
-      ? cur.filter((x) => x !== id)
-      : [...cur, id].slice(0, 6);
-    if (which === "mother") setInterestsMother(next);
-    else setInterestsFather(next);
-  }
-
-  function generate() {
-    if (letterSource === "chart" && !hasChart) {
-      setError(
-        lang === "si"
-          ? "කේන්ද්‍ර අකුරු සඳහා පළමුව කේන්ද්‍රය සාදන්න — නැතහොත් 'අතින් අකුරු' තෝරන්න."
-          : "Cast the Kendraya first for chart letters — or switch to Manual letters.",
-      );
-      return;
-    }
-    if (letterSource === "manual" && !manualFirstLetters.length) {
-      setError(
-        lang === "si"
-          ? "මුල් නම සඳහා අකුරු ඇතුළත් කරන්න (උදා: මො, ර)."
-          : "Enter at least one first-name letter (e.g. මො, ර).",
-      );
-      return;
-    }
-    setError(null);
+  function resetResults() {
+    setNames([]);
+    setLetters(null);
     setPicked(null);
-    track("tool_used", { tool: "nam" });
-    track("name_suggestions_requested");
-    startTransition(async () => {
-      try {
-        const res = await fetch(apiUrl("/api/names/suggest"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
-          body: JSON.stringify({
-            birth: letterSource === "chart" || birth.date ? birth : undefined,
-            motherName: motherName || undefined,
-            fatherName: fatherName || undefined,
-            siblingNames,
-            interestsMother,
-            interestsFather,
-            sharedHopes: sharedHopes || undefined,
-            livingCountry,
-            personality,
-            religionContext,
-            nameLanguage,
-            verifyCurrentUsage,
-            preferPrimaryLetter: preferPrimary,
-            count: clampNameCount(nameCount),
-            letterSource,
-            manualFirstLetters:
-              letterSource === "manual" ? manualFirstLetters : undefined,
-            manualMiddleLetters:
-              letterSource === "manual" && manualMiddleLetters.length
-                ? manualMiddleLetters
-                : undefined,
-          }),
-        });
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || "failed");
-        setNames(json.names as SuggestedName[]);
-        track("name_suggestions_generated", { method: json.source === "seed" ? "fallback" : "ai" });
-        setLetters(json.letters);
-        setUsedAgents(json.personalitiesUsed ?? []);
-        setSource(json.source ?? "");
-        setFramework(json.framework ?? "");
-        setGraphTrace(
-          Array.isArray(json.graphTrace) ? json.graphTrace.slice(0, 12) : [],
-        );
-        setResultLetterSource(json.letterSource ?? letterSource);
-        setUsageInfo(json.usageVerification ?? null);
-        const persona = json.horoscopePersona;
-        setPersonaSummary(
-          persona
-            ? lang === "si"
-              ? (persona.summarySi as string)
-              : (persona.summaryEn as string)
-            : "",
-        );
-        setLearning(json.learning ?? null);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      }
+    history.current = [];
+    partHistory.current = [];
+    setNotice("");
+    setError("");
+  }
+  async function post(path: string, data: unknown) {
+    const res = await fetch(apiUrl(path), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
+      body: JSON.stringify(data),
     });
+    const j = await res.json();
+    if (!j.ok) throw Error(j.error || "Please try again.");
+    return j;
   }
-
-  function replaceNameInList(prev: SuggestedName, next: SuggestedName) {
-    setNames((list) =>
-      list.map((n) => (n.roman === prev.roman && n.sinhala === prev.sinhala ? next : n)),
-    );
-    setPicked((cur) =>
-      cur && cur.roman === prev.roman && cur.sinhala === prev.sinhala ? next : cur,
-    );
-  }
-
-  async function sendFeedback(
-    n: SuggestedName,
-    action: "up" | "down",
-    target: "full" | "first" | "middle",
-  ) {
-    const busyKey = `${n.roman}:${target}:${action}`;
-    setFeedbackBusy(busyKey);
-    setError(null);
-    try {
-      const res = await fetch(apiUrl("/api/names/feedback"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
-        body: JSON.stringify({
-          action,
-          target,
-          firstRoman: n.first.roman,
-          firstSinhala: n.first.sinhala,
-          middleRoman: n.middle.roman,
-          middleSinhala: n.middle.sinhala,
-          sessionId: sessionId || ensureSessionId(),
-        }),
-      });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "feedback failed");
-      if (json.learning) {
-        setLearning({
-          likedFirst: json.learning.likedFirst ?? [],
-          dislikedFirst: json.learning.dislikedFirst ?? [],
-          likedMiddle: json.learning.likedMiddle ?? [],
-          dislikedMiddle: json.learning.dislikedMiddle ?? [],
-        });
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setFeedbackBusy(null);
-    }
-  }
-
-  async function reshufflePart(n: SuggestedName, part: "first" | "middle") {
-    if (!letters?.primary) {
-      setError(
-        lang === "si"
-          ? "ප්‍රතිස්ථාපනයට පෙර නම් ජනනය කරන්න."
-          : "Generate names before reshuffling.",
-      );
+  async function generate() {
+    if (letterSource === "chart" && !hasChart) {
+      setError(si ? "පළමුව කේන්ද්‍රය සාදන්න." : "Cast the chart first.");
       return;
     }
-    const busyKey = `${n.roman}:reshuffle:${part}`;
-    setFeedbackBusy(busyKey);
-    setError(null);
+    if (letterSource === "manual" && !split(firstRaw).length) {
+      setError(si ? "ආරම්භක අකුරු ඇතුළත් කරන්න." : "Enter first-name letters.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    setPicked(null);
+    track("name_suggestions_requested");
     try {
-      const res = await fetch(apiUrl("/api/names/reshuffle"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
-        body: JSON.stringify({
-          part,
-          current: n,
-          pool: names,
-          firstLetters: letters.first ?? letters.all,
-          middleLetters: letters.middle ?? letters.all,
-          primary: letters.primary,
-          gender: birth.gender === "male" || birth.gender === "female"
+      const j = await post("/api/names/suggest", {
+        birth,
+        letterSource,
+        manualFirstLetters: split(firstRaw),
+        manualMiddleLetters: split(middleRaw),
+        religionContext: religion,
+        includeTraditional: traditional,
+        includeReview: review,
+        count,
+        excludePairs: history.current.slice(-2048),
+        verifyCurrentUsage: false,
+      });
+      setNames(j.names);
+      setLetters(j.letters);
+      resultOptions.current = { religion, traditional, review, letterSource };
+      history.current = [
+        ...new Set([
+          ...history.current,
+          ...j.names.map((n: SuggestedName) => n.roman),
+        ]),
+      ].slice(-2048);
+      if (j.exhausted || !j.names.length)
+        setNotice(
+          si
+            ? "මෙම අකුරු සහ මනාප සඳහා සමාලෝචිත නව විකල්ප අඩුයි. අකුරු හෝ මනාප වෙනස් කළ හැක; හිඟය පිරවීමට නම්/අර්ථ නිර්මාණය නොකරමු."
+            : "Fewer reviewed, unused matches remain for these letters/preferences. We will not invent names or meanings to fill the count.",
+        );
+      if (j.unmatchedLetters?.length)
+        setNotice(
+          (j.exhausted
+            ? si
+              ? "සමාලෝචිත විකල්ප අඩුයි. "
+              : "Fewer reviewed matches remain. "
+            : "") +
+            (si
+              ? `මෙම අකුරු සඳහා සමාලෝචිත නම් නැත: ${j.unmatchedLetters.join(", ")}. දී ඇති වෙනත් අකුරු පමණක් යොදා ඇත.`
+              : `No reviewed matches for: ${j.unmatchedLetters.join(", ")}. Only your other allowed letters are used.`),
+        );
+      track("name_suggestions_generated", { method: "curated" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function swap(n: SuggestedName, part: "first" | "middle") {
+    if (!letters) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const opts = resultOptions.current;
+      const j = await post("/api/names/reshuffle", {
+        current: n,
+        part,
+        firstLetters: letters.first,
+        middleLetters: letters.middle,
+        primary: letters.primary,
+        gender:
+          birth.gender === "male" || birth.gender === "female"
             ? birth.gender
             : "unspecified",
-          country: livingCountry,
-          letterSource: resultLetterSource || letterSource,
-          sessionId: sessionId || ensureSessionId(),
-          recordDownvote: true,
-        }),
+        religionContext: opts.religion,
+        includeTraditional: opts.traditional,
+        includeReview: opts.review,
+        letterSource: opts.letterSource,
+        excludePairs: history.current.slice(-2048),
+        excludeParts: partHistory.current.slice(-2048),
+        sessionId: session.current,
+        recordDownvote: true,
       });
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "reshuffle failed");
-      replaceNameInList(n, json.name as SuggestedName);
-      if (json.learning) {
-        setLearning({
-          likedFirst: json.learning.likedFirst ?? [],
-          dislikedFirst: json.learning.dislikedFirst ?? [],
-          likedMiddle: json.learning.likedMiddle ?? [],
-          dislikedMiddle: json.learning.dislikedMiddle ?? [],
-        });
-      }
+      if (j.warning) setNotice(j.warning);
+      history.current = [...new Set([...history.current, j.name.roman])].slice(
+        -2048,
+      );
+      partHistory.current = [
+        ...new Set([...partHistory.current, n[part].roman]),
+      ].slice(-2048);
+      setNames((list) => list.map((x) => (x.roman === n.roman ? j.name : x)));
+      setPicked((cur) => (cur?.roman === n.roman ? j.name : cur));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? e.message : "Please try again.");
     } finally {
-      setFeedbackBusy(null);
+      setBusy(false);
     }
   }
-
+  async function feedback(n: SuggestedName, action: "up" | "down") {
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/names/feedback", {
+        action,
+        target: "full",
+        firstRoman: n.first.roman,
+        firstSinhala: n.first.sinhala,
+        middleRoman: n.middle.roman,
+        middleSinhala: n.middle.sinhala,
+        sessionId: session.current,
+      });
+      setNotice(si ? "ඔබේ ප්‍රතිචාරය සටහන් කළා." : "Feedback recorded.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <section className="name-studio">
       <header className="name-studio-head">
-        <h3>
-          {lang === "si"
-            ? "නවීන නාම චිත්‍රාගාරය (Agentic)"
-            : "Modern Name Studio (Agentic)"}
-        </h3>
+        <h3>{si ? "නවීන නාම චිත්‍රාගාරය" : "Modern Name Studio"}</h3>
         <p>
-          {lang === "si"
-            ? "සෑම යෝජනාවකම මුල් නම + මධ්‍ය නම ඇත. කේන්ද්‍ර අකුරු හෝ අතින් ඇතුළත් අකුරු — වෙන වෙනම විකල්ප දෙකකි."
-            : "Every suggestion includes a first + middle name. Chart letters and manual letter entry are separate options."}
+          {si
+            ? "කෙටි, කියවීමට පහසු, සංස්කෘතියට ගැළපෙන මුල් + මධ්‍ය නම්."
+            : "Short, readable first + middle names, with cultural preferences."}
         </p>
       </header>
-
-      <div className="name-source-tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          className={letterSource === "chart" ? "active" : ""}
-          aria-selected={letterSource === "chart"}
-          onClick={() => setLetterSource("chart")}
-        >
-          {lang === "si" ? "කේන්ද්‍ර අකුරු" : "Chart letters"}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={letterSource === "manual" ? "active" : ""}
-          aria-selected={letterSource === "manual"}
-          onClick={() => setLetterSource("manual")}
-        >
-          {lang === "si" ? "අතින් අකුරු ඇතුළත් කරන්න" : "Manual letters"}
-        </button>
+      <p className="muted">
+        {si
+          ? "ජනීෂ් / විදියන් වැනි නවීන ශබ්ද රටාවන්ට ප්‍රමුඛතාව දෙමු; නමේ ශබ්දයෙන් අර්ථයක් හෝ ආගමක් අනුමාන නොකරමු."
+          : "Modern sound styles like Janeesh / Vidiyan guide ranking, but sound alone never establishes a meaning or religion."}
+      </p>
+      <div
+        className="name-source-tabs"
+        role="tablist"
+        aria-label="Starting-letter source"
+      >
+        {(["chart", "manual"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            role="tab"
+            aria-selected={letterSource === mode}
+            disabled={busy}
+            className={letterSource === mode ? "active" : ""}
+            onClick={() => {
+              setLetterSource(mode);
+              resetResults();
+            }}
+          >
+            {mode === "chart"
+              ? si
+                ? "කේන්ද්‍ර අකුරු"
+                : "Chart letters"
+              : si
+                ? "අතින් අකුරු"
+                : "Manual letters"}
+          </button>
+        ))}
       </div>
-
-      {letterSource === "chart" ? (
-        <p className="muted name-source-note">
-          {hasChart
-            ? lang === "si"
-              ? "නම් තැබීමේ අකුරු කේන්ද්‍රයෙන් ගනී. මුල් සහ මධ්‍ය නම් ඒ අකුරු යටතේ ජනනය වේ."
-              : "Letters come from the cast Kendraya. First and middle names are generated under those letters."
-            : lang === "si"
-              ? "මෙම විකල්පයට කේන්ද්‍රය සාදන්න අවශ්‍යයි."
-              : "This option needs a cast Kendraya first."}
-        </p>
-      ) : (
-        <div className="name-manual-letters">
-          <p className="muted name-source-note">
-            {lang === "si"
-              ? "වෙනම විකල්පයකි — ඔබට අවශ්‍ය ආරම්භක අකුරු අතින් දෙන්න (කේන්ද්‍රය අනිවාර්ය නොවේ)."
-              : "Separate option — type starting letters yourself (chart not required)."}
-          </p>
-          <div className="name-studio-grid">
-            <label>
-              <span>
-                {lang === "si"
-                  ? "මුල් නමේ අකුරු (අනිවාර්ය)"
-                  : "First-name letters (required)"}
-              </span>
-              <input
-                value={manualFirstRaw}
-                onChange={(e) => setManualFirstRaw(e.target.value)}
-                placeholder={
-                  lang === "si" ? "උදා: මො, ර, ය" : "e.g. මො, ර, ය or Mo, Ra"
-                }
-              />
-            </label>
-            <label>
-              <span>
-                {lang === "si"
-                  ? "මධ්‍ය නමේ අකුරු (විකල්ප)"
-                  : "Middle-name letters (optional)"}
-              </span>
-              <input
-                value={manualMiddleRaw}
-                onChange={(e) => setManualMiddleRaw(e.target.value)}
-                placeholder={
-                  lang === "si"
-                    ? "හිස් නම් මුල් අකුරුම යොදයි · උදා: ස, ක"
-                    : "Blank = reuse first letters · e.g. ස, ක"
-                }
-              />
-            </label>
-          </div>
-          {manualFirstLetters.length ? (
-            <p className="muted">
-              {lang === "si" ? "මුල්" : "First"}:{" "}
-              {manualFirstLetters.join(" · ")}
-              {" · "}
-              {lang === "si" ? "මධ්‍ය" : "Middle"}:{" "}
-              {(manualMiddleLetters.length
-                ? manualMiddleLetters
-                : manualFirstLetters
-              ).join(" · ")}
-            </p>
-          ) : null}
+      {letterSource === "manual" && (
+        <div className="name-studio-grid">
+          <label>
+            {si ? "මුල් නමේ අකුරු" : "First-name letters"}
+            <input
+              value={firstRaw}
+              disabled={busy}
+              onChange={(e) => {
+                setFirstRaw(e.target.value);
+                resetResults();
+              }}
+              placeholder="ට, ටි, ම, මි, මු, ප, පි"
+            />
+          </label>
+          <label>
+            {si ? "මධ්‍ය නමේ අකුරු (විකල්ප)" : "Middle-name letters (optional)"}
+            <input
+              value={middleRaw}
+              disabled={busy}
+              onChange={(e) => {
+                setMiddleRaw(e.target.value);
+                resetResults();
+              }}
+              placeholder={
+                si
+                  ? "හිස් නම් මුල් අකුරුම යොදයි"
+                  : "Blank = reuse first letters"
+              }
+            />
+          </label>
         </div>
       )}
-
       <div className="name-studio-grid">
         <label>
-          <span>{lang === "si" ? "මවගේ නම" : "Mother's name"}</span>
-          <input
-            value={motherName}
-            onChange={(e) => setMotherName(e.target.value)}
-          />
-        </label>
-        <label>
-          <span>{lang === "si" ? "පියාගේ නම" : "Father's name"}</span>
-          <input
-            value={fatherName}
-            onChange={(e) => setFatherName(e.target.value)}
-          />
-        </label>
-        <label className="span-2">
-          <span>
-            {lang === "si"
-              ? "සහෝදර/සහෝදරියන් (කොමාවෙන්)"
-              : "Siblings (comma-separated)"}
-          </span>
-          <input
-            value={siblingsRaw}
-            onChange={(e) => setSiblingsRaw(e.target.value)}
-            placeholder={
-              lang === "si" ? "උදා: සහන්, නෙත්මි" : "e.g. Sahan, Nethmi"
-            }
-          />
-        </label>
-        <label>
-          <span>{lang === "si" ? "ජීවත් වන රට" : "Living country"}</span>
+          {si ? "ආගමික / සංස්කෘතික මනාපය" : "Religion / culture preference"}
           <select
-            value={livingCountry}
-            onChange={(e) => setLivingCountry(e.target.value as LivingCountry)}
+            aria-label={
+              si ? "ආගමික / සංස්කෘතික මනාපය" : "Religion / culture preference"
+            }
+            value={religion}
+            disabled={busy}
+            onChange={(e) => {
+              setReligion(e.target.value as ReligionContext);
+              resetResults();
+            }}
           >
-            {LIVING_COUNTRIES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {lang === "si" ? c.si : c.en}
+            {RELIGION_OPTIONS.filter(
+              (r) => !["unspecified", "interfaith"].includes(r.id),
+            ).map((r) => (
+              <option key={r.id} value={r.id}>
+                {si ? r.si : r.en}
               </option>
             ))}
           </select>
         </label>
         <label>
-          <span>
-            {lang === "si" ? "නාම නියෝජිත පෞරුෂය" : "Naming agent"}
-          </span>
-          <select
-            value={personality}
-            onChange={(e) =>
-              setPersonality(
-                e.target.value as NamingPersonalityId | "ensemble",
-              )
-            }
-          >
-            <option value="ensemble">
-              {lang === "si"
-                ? "Ensemble (නිර්දේශිත — භාෂා/සාහිත්‍ය/ආගමික ඇතුළු)"
-                : "Ensemble (recommended — language/literature/religion)"}
-            </option>
-            {NAMING_PERSONALITIES.map((p) => (
-              <option key={p.id} value={p.id}>
-                {lang === "si" ? p.si : p.en}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>
-            {lang === "si" ? "නම් ගණන" : "Number of names"}
-          </span>
+          {si ? "නම් ගණන" : "Number of names"}
           <input
             type="number"
-            min={NAME_COUNT_MIN}
+            min={1}
             max={NAME_COUNT_MAX}
-            step={1}
-            value={nameCount}
-            onChange={(e) =>
-              setNameCount(clampNameCount(e.target.value || NAME_COUNT_DEFAULT))
-            }
+            value={count}
+            disabled={busy}
+            onChange={(e) => setCount(clampNameCount(e.target.value))}
           />
-          <span className="muted name-count-hint">
-            {lang === "si"
-              ? `${NAME_COUNT_MIN}–${NAME_COUNT_MAX} අතර ඕනෑම ගණනක්`
-              : `Any number from ${NAME_COUNT_MIN} to ${NAME_COUNT_MAX}`}
-          </span>
-        </label>
-        <label>
-          <span>
-            {lang === "si" ? "නාම භාෂා මනාපය" : "Name language preference"}
-          </span>
-          <select
-            value={nameLanguage}
-            onChange={(e) =>
-              setNameLanguage(e.target.value as NameLanguagePref)
-            }
-          >
-            {NAME_LANGUAGE_OPTIONS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {lang === "si" ? o.si : o.en}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>
-            {lang === "si" ? "ආගමික / විශ්වාස සන්දර්භය" : "Religion / faith context"}
-          </span>
-          <select
-            value={religionContext}
-            onChange={(e) =>
-              setReligionContext(e.target.value as ReligionContext)
-            }
-          >
-            {RELIGION_OPTIONS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {lang === "si" ? o.si : o.en}
-              </option>
-            ))}
-          </select>
         </label>
       </div>
-
-      {countryHint ? (
-        <p className="name-country-hint muted">{countryHint.namingHint}</p>
-      ) : null}
-
       <label className="place-custom-toggle">
         <input
           type="checkbox"
-          checked={verifyCurrentUsage}
-          onChange={(e) => setVerifyCurrentUsage(e.target.checked)}
+          checked={traditional}
+          disabled={busy}
+          onChange={(e) => {
+            setTraditional(e.target.checked);
+            resetResults();
+          }}
         />
-        <span>
-          {lang === "si"
-            ? "වත්මන් පරම්පරා නාම භාවිතය web මගින් සත්‍යාපනය කරන්න (තෝරාගත් රට + භාෂාව)"
-            : "Verify against current-generation names via web (living country + language)"}
-        </span>
+        {si
+          ? "සාම්ප්‍රදායික නම් ද ඇතුළත් කරන්න"
+          : "Include traditional names (lower modernity score)"}
       </label>
-
-      <div className="name-interests">
-        <div>
-          <h4>
-            {lang === "si"
-              ? "මවගේ බලාපොරොත්තු / උනන්දුව"
-              : "Mother's hopes / interests"}
-          </h4>
-          <div className="chip-row">
-            {INTERESTS.map((i) => (
-              <button
-                key={`m-${i.id}`}
-                type="button"
-                className={interestsMother.includes(i.id) ? "active" : ""}
-                onClick={() => toggleInterest("mother", i.id)}
-              >
-                {lang === "si" ? i.si : i.en}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <h4>
-            {lang === "si"
-              ? "පියාගේ බලාපොරොත්තු / උනන්දුව"
-              : "Father's hopes / interests"}
-          </h4>
-          <div className="chip-row">
-            {INTERESTS.map((i) => (
-              <button
-                key={`f-${i.id}`}
-                type="button"
-                className={interestsFather.includes(i.id) ? "active" : ""}
-                onClick={() => toggleInterest("father", i.id)}
-              >
-                {lang === "si" ? i.si : i.en}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <label>
-        <span>{lang === "si" ? "පොදු බලාපොරොත්තු" : "Shared hopes"}</span>
+      <label className="place-custom-toggle">
         <input
-          value={sharedHopes}
-          onChange={(e) => setSharedHopes(e.target.value)}
-          placeholder={
-            lang === "si"
-              ? "උදා: දයාවත් · ඉගෙනුම් දක්ෂ · විදේශයේත් පහසු නමක්"
-              : "e.g. kind · studious · easy name abroad"
-          }
+          type="checkbox"
+          checked={review}
+          disabled={busy}
+          onChange={(e) => {
+            setReview(e.target.checked);
+            resetResults();
+          }}
         />
+        {si
+          ? "අර්ථය තහවුරු නොකළ නවීන නම් ද බලන්න (සමාලෝචනය සඳහා පමණි)"
+          : "Show modern names with unverified meanings (review only)"}
       </label>
-
-      {letterSource === "chart" ? (
-        <label className="place-custom-toggle">
-          <input
-            type="checkbox"
-            checked={preferPrimary}
-            onChange={(e) => setPreferPrimary(e.target.checked)}
-          />
-          <span>
-            {lang === "si"
-              ? "ප්‍රධාන කේන්ද්‍ර අකුරට වැඩි කැඩැම්පතුවක් (මුල් නම)"
-              : "Prefer primary Kendraya letter (first name)"}
-          </span>
-        </label>
-      ) : null}
-
+      <p className="muted">
+        {si
+          ? "නවීනත්වය සංස්කාරක ඇගයීමකි; 2026 උපත් ජනප්‍රියතා දත්ත නොවේ. අකුරු නැති නම් වෙනත් අකුරු රහසේ යොදා නොගනිමු."
+          : "Modernity is editorial, not verified 2026 newborn popularity. Scarce letters are never silently substituted. Culture tags describe compatibility, not someone’s identity."}
+      </p>
       <button
         type="button"
         className="primary"
-        disabled={pending}
+        disabled={busy}
         onClick={generate}
       >
-        {pending
-          ? lang === "si"
-            ? "මුල් + මධ්‍ය නම් සාදමින්…"
-            : "Crafting first + middle names…"
-          : lang === "si"
-            ? `මුල්+මධ්‍ය නම් ${clampNameCount(nameCount)}ක් ජනනය කරන්න`
-            : `Generate ${clampNameCount(nameCount)} first + middle names`}
+        {busy
+          ? si
+            ? "නම් සොයමින්…"
+            : "Finding names…"
+          : si
+            ? `මුල්+මධ්‍ය නම් ${count}ක් ජනනය කරන්න`
+            : `Generate ${count} first + middle names`}
       </button>
-
-      {error ? <p className="error">{error}</p> : null}
-
-      {letters ? (
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="name-notice" role="status">
+          {notice}
+        </p>
+      )}
+      {letters && (
         <p className="muted">
-          {resultLetterSource === "manual"
-            ? lang === "si"
-              ? "අතින් අකුරු"
-              : "Manual letters"
-            : lang === "si"
-              ? "කේන්ද්‍ර අකුරු"
-              : "Chart letters"}
-          :{" "}
-          <strong>
-            {letters.primary}
-            {letters.primaryRoman ? `/${letters.primaryRoman}` : ""}
-          </strong>
-          {" · "}
-          {lang === "si" ? "මුල්" : "first"}:{" "}
-          {(letters.first ?? letters.all).slice(0, 8).join(" · ")}
-          {" · "}
-          {lang === "si" ? "මධ්‍ය" : "middle"}:{" "}
-          {(letters.middle ?? letters.all).slice(0, 10).join(" · ")}
+          {si ? "මුල්" : "First"}: {letters.first.join(" · ")} /{" "}
+          {si ? "මධ්‍ය" : "Middle"}: {letters.middle.join(" · ")}
           <br />
-          {lang === "si"
-            ? "පිලි සහිත අකුරකට මූල ව්‍යංජනයද ඉඩ ඇත (උදා: මො → ම)."
-            : "Vowel-marked letters also allow the base consonant (e.g. මො → ම)."}
-          <br />
-          agents: {usedAgents.join(" · ")} · source: {source}
-          {framework ? ` · harness: ${framework}` : ""}
-          {graphTrace.length ? (
-            <>
-              <br />
-              graph: {graphTrace.join(" → ")}
-            </>
-          ) : null}
-          {personaSummary ? (
-            <>
-              <br />
-              <span className="persona-brief">
-                {lang === "si" ? "හෝරා පෞරුෂය" : "Horoscope persona"}:{" "}
-                {personaSummary}
-              </span>
-            </>
-          ) : null}
-          {usageInfo?.enabled ? (
-            <>
-              <br />
-              {lang === "si" ? "වත්මන් භාවිත සත්‍යාපනය" : "Current-usage verify"}
-              : {usageInfo.verifiedCount}/{names.length}
-              {usageInfo.live
-                ? lang === "si"
-                  ? " · live web"
-                  : " · live web"
-                : lang === "si"
-                  ? " · local fallback"
-                  : " · local fallback"}
-              {usageInfo.sources?.length
-                ? ` · ${usageInfo.sources.slice(0, 3).join(", ")}`
-                : ""}
-            </>
-          ) : null}
+          {si
+            ? "පිලි සහිත අකුරකට මූල ව්‍යංජනයද ඉඩ ඇත; ට සහ ත වෙනස් අකුරුය."
+            : "Vowel-marked letters can use their base consonant; ට and ත remain distinct."}
         </p>
-      ) : null}
-
-      {learning &&
-      (learning.likedFirst.length ||
-        learning.dislikedFirst.length ||
-        learning.likedMiddle.length ||
-        learning.dislikedMiddle.length) ? (
-        <p className="muted learning-brief">
-          {lang === "si" ? "ඉගෙනුම් සාරාංශය" : "Learning so far"}:{" "}
-          {learning.likedFirst.length
-            ? `${lang === "si" ? "කැමති මුල්" : "liked first"} ${learning.likedFirst.slice(0, 6).join(", ")}`
-            : ""}
-          {learning.dislikedFirst.length
-            ? ` · ${lang === "si" ? "අකමැති මුල්" : "disliked first"} ${learning.dislikedFirst.slice(0, 6).join(", ")}`
-            : ""}
-          {learning.likedMiddle.length
-            ? ` · ${lang === "si" ? "කැමති මධ්‍ය" : "liked middle"} ${learning.likedMiddle.slice(0, 4).join(", ")}`
-            : ""}
-          {learning.dislikedMiddle.length
-            ? ` · ${lang === "si" ? "අකමැති මධ්‍ය" : "disliked middle"} ${learning.dislikedMiddle.slice(0, 4).join(", ")}`
-            : ""}
-        </p>
-      ) : null}
-
-      {picked ? (
-        <div className="name-picked">
-          <h4>{lang === "si" ? "තෝරාගත් නම" : "Selected name"}</h4>
-          <p className="picked-main">
+      )}
+      {picked && (
+        <aside className="name-picked">
+          <h4>{si ? "තෝරාගත් නම" : "Selected name"}</h4>
+          <p>
             {picked.sinhala} / {picked.roman}
           </p>
-          <p className="muted">
-            {lang === "si" ? "මුල්" : "First"}: {picked.first.sinhala} (
-            {picked.first.startsWith}) ·{" "}
-            {lang === "si" ? "මධ්‍ය" : "Middle"}: {picked.middle.sinhala} (
-            {picked.middle.startsWith})
-          </p>
-          <p>{lang === "si" ? picked.meaningSi : picked.meaningEn}</p>
-          <div className="name-feedback-bar picked-feedback">
-            <button
-              type="button"
-              className="fb-like"
-              disabled={!!feedbackBusy}
-              onClick={() => sendFeedback(picked, "up", "full")}
-            >
-              {lang === "si" ? "මුළු නමට කැමතියි" : "Like full name"}
-            </button>
-            <button
-              type="button"
-              className="fb-dislike"
-              disabled={!!feedbackBusy}
-              onClick={() => sendFeedback(picked, "down", "full")}
-            >
-              {lang === "si" ? "මුළු නමට අකමැතියි" : "Dislike full name"}
-            </button>
-            <button
-              type="button"
-              className="fb-reshuffle"
-              disabled={!!feedbackBusy}
-              onClick={() => reshufflePart(picked, "first")}
-            >
-              {lang === "si"
-                ? "මුල් නම අකමැතියි → වෙනස් කරන්න"
-                : "Dislike first → reshuffle"}
-            </button>
-            <button
-              type="button"
-              className="fb-reshuffle"
-              disabled={!!feedbackBusy}
-              onClick={() => reshufflePart(picked, "middle")}
-            >
-              {lang === "si"
-                ? "මධ්‍ය නම අකමැතියි → වෙනස් කරන්න"
-                : "Dislike middle → reshuffle"}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
+          <p>{si ? picked.meaningSi : picked.meaningEn}</p>
+        </aside>
+      )}
       <div className="name-cards">
         {names.map((n) => (
-          <article
-            key={`${n.roman}-${n.sinhala}-${n.agentId}`}
-            className={`name-card${picked?.roman === n.roman ? " selected" : ""}${n.isPrimaryLetter ? " primary-letter" : ""}${n.usageVerified ? " usage-verified" : ""}`}
-          >
+          <article className="name-card" key={n.roman}>
             <header>
               <strong>
                 {n.sinhala}
@@ -802,119 +405,74 @@ export function NameStudio({
                 <span className="name-roman">{n.roman}</span>
               </strong>
               <span className="name-badge">
-                {n.first.startsWith}+{n.middle.startsWith}
-                {n.isPrimaryLetter ? " ★" : ""}
-                {n.usageVerified ? " ✓" : ""}
+                {n.first.startsWith} + {n.middle.startsWith}
               </span>
             </header>
-            <p className="name-parts muted">
-              {lang === "si" ? "මුල්" : "First"}: {n.first.sinhala} /{" "}
-              {n.first.roman} · {lang === "si" ? "මධ්‍ය" : "Middle"}:{" "}
-              {n.middle.sinhala} / {n.middle.roman}
+            <p className="name-meaning">{si ? n.meaningSi : n.meaningEn}</p>
+            <p className="name-quality-tags">
+              {si ? "ගැළපෙන සන්දර්භ: " : "Compatible contexts: "}
+              {(n.religionTags ?? [])
+                .map((r) => contextLabel(r, lang))
+                .join(" · ")}
+              <br />
+              {si ? "ශෛලිය" : "Style"}: {n.era} ·{" "}
+              {si ? "සංස්කාරක ලකුණු" : "Editorial score"}: {n.score}
             </p>
-            <p className="name-meaning">
-              {lang === "si" ? n.meaningSi : n.meaningEn}
-            </p>
-            <p className="muted">{lang === "si" ? n.whySi : n.whyEn}</p>
-            {n.alignWhySi || n.alignWhyEn ? (
-              <p className="muted align-why">
-                {lang === "si" ? n.alignWhySi : n.alignWhyEn}
+            {n.meaningStatus === "review" ? (
+              <p className="name-review-warning">
+                {si
+                  ? "අර්ථය සත්‍යාපනය කර නැත. අවසාන තේරීමට පෙර භාෂා විශේෂඥයෙකුගෙන් විමසන්න."
+                  : "Meaning unverified. Ask a language specialist before your final choice."}
               </p>
-            ) : null}
-            <p className="muted">
-              {lang === "si" ? n.familyFitSi : n.familyFitEn}
-            </p>
-            <p className="muted">
-              {lang === "si" ? n.countryFitSi : n.countryFitEn}
-            </p>
-            {n.factors ? (
-              <ul className="name-factors">
-                {(
-                  [
-                    [
-                      "horoscopePersonalityFit",
-                      lang === "si" ? "හෝරා ගති" : "Horoscope",
-                    ],
-                    [
-                      "readability",
-                      lang === "si" ? "කියවීම" : "Readability",
-                    ],
-                    [
-                      "memorability",
-                      lang === "si" ? "මතකය" : "Memory",
-                    ],
-                    [
-                      "modernGenerationFit",
-                      lang === "si" ? "නවීන" : "Modern",
-                    ],
-                    [
-                      "meaningLanguageFit",
-                      lang === "si" ? "අර්ථ/භාෂා" : "Meaning",
-                    ],
-                    [
-                      "religionFit",
-                      lang === "si" ? "ආගම" : "Religion",
-                    ],
-                    [
-                      "countryFit",
-                      lang === "si" ? "රට" : "Country",
-                    ],
-                  ] as const
-                ).map(([key, label]) => (
-                  <li key={key}>
-                    <span>{label}</span>
-                    <strong>{n.factors![key]}</strong>
-                  </li>
+            ) : (
+              <details>
+                <summary>{si ? "අර්ථ මූලාශ්‍ර" : "Meaning sources"}</summary>
+                {(n.meaningSources ?? []).map((url, i) => (
+                  <p key={i}>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      {i === 0 ? n.first.roman : n.middle.roman} —{" "}
+                      {si ? "මූලාශ්‍රය" : "source"}
+                    </a>
+                  </p>
                 ))}
-              </ul>
-            ) : null}
-            {n.usageNoteSi || n.usageNoteEn ? (
-              <p className={`muted${n.usageVerified ? " usage-hit" : ""}`}>
-                {lang === "si" ? n.usageNoteSi : n.usageNoteEn}
-              </p>
-            ) : null}
+              </details>
+            )}
             <div className="name-feedback-bar">
               <button
                 type="button"
-                className="fb-like"
-                title={lang === "si" ? "කැමතියි" : "Like"}
-                disabled={!!feedbackBusy}
-                onClick={() => sendFeedback(n, "up", "full")}
+                disabled={busy}
+                onClick={() => feedback(n, "up")}
+                aria-label={`Like ${n.roman}`}
               >
                 ♥
               </button>
               <button
                 type="button"
-                className="fb-dislike"
-                title={lang === "si" ? "අකමැතියි" : "Dislike"}
-                disabled={!!feedbackBusy}
-                onClick={() => sendFeedback(n, "down", "full")}
+                disabled={busy}
+                onClick={() => feedback(n, "down")}
+                aria-label={`Dislike ${n.roman}`}
               >
                 ✕
               </button>
               <button
                 type="button"
-                className="fb-part"
-                disabled={!!feedbackBusy}
-                onClick={() => reshufflePart(n, "first")}
+                disabled={busy}
+                onClick={() => swap(n, "first")}
               >
-                {lang === "si" ? "මුල් මාරු" : "Swap first"}
+                {si ? "මුල් මාරු" : "Swap first"}
               </button>
               <button
                 type="button"
-                className="fb-part"
-                disabled={!!feedbackBusy}
-                onClick={() => reshufflePart(n, "middle")}
+                disabled={busy}
+                onClick={() => swap(n, "middle")}
               >
-                {lang === "si" ? "මධ්‍ය මාරු" : "Swap middle"}
+                {si ? "මධ්‍ය මාරු" : "Swap middle"}
               </button>
             </div>
             <footer>
-              <span>
-                {lang === "si" ? n.agentLabelSi : n.agentLabelEn} · {n.score}
-              </span>
+              <span>{si ? "සමාලෝචිත නාම එකතුව" : "Curated catalogue"}</span>
               <button type="button" onClick={() => setPicked(n)}>
-                {lang === "si" ? "මෙය තෝරන්න" : "Pick this"}
+                {si ? "මෙය තෝරන්න" : "Pick this"}
               </button>
             </footer>
           </article>

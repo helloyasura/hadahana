@@ -51,17 +51,8 @@ async function runChart() {
     count: 20,
   });
   assertPairs("chart", result.names);
-  const agents = new Set(result.personalitiesUsed);
-  for (const id of [
-    "sinhala_language",
-    "sinhala_literature",
-    "multi_religion",
-  ] as const) {
-    if (!agents.has(id)) throw new Error(`chart ensemble missing agent ${id}`);
-  }
-  if (result.framework !== "langgraph" && result.source !== "seed") {
-    throw new Error(`expected langgraph harness, got ${result.framework}`);
-  }
+  if (result.source !== "curated" || result.framework !== "curated") throw new Error("Expected curated allowlist, not ungrounded AI output");
+  if (!result.names.every(n=>n.meaningStatus==='sourced' && n.religionTags?.includes('buddhist'))) throw new Error('Culture/meaning gate failed');
   console.log(
     JSON.stringify(
       {

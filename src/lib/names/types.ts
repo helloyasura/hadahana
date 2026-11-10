@@ -47,6 +47,12 @@ export type SuggestedName = {
   agentLabelEn: string;
   score: number;
   letterSource: "chart" | "manual";
+  religionTags?: import("./personalities").ReligionContext[];
+  era?: "modern" | "timeless" | "traditional" | "mixed";
+  meaningStatus?: "sourced" | "review";
+  meaningSources?: string[];
+  catalogueIds?: string[];
+  popularity?: "editorial-unranked";
   /** Current-generation usage verification in living country */
   usageVerified?: boolean;
   usageNoteSi?: string;
