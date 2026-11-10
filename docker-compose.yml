@@ -51,6 +51,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LUMS_API_URL: ${LUMS_API_URL:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
+      PRO_STORAGE_KEY: ${PRO_STORAGE_KEY:-}
+      PRO_DATA_PATH: /var/lib/handahana/jyotisha-pro.enc
+      PRO_PUBLIC_ORIGIN: ${PRO_PUBLIC_ORIGIN:-}
+      PRO_LUMS_API_URL: ${PRO_LUMS_API_URL:-}
+      PRO_LUMS_SERVICE_KEY: ${PRO_LUMS_SERVICE_KEY:-}
+      PRO_TRUST_PROXY: ${PRO_TRUST_PROXY:-0}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       NAME_FEEDBACK_DB_PATH: /var/lib/handahana/name-feedback.json
     volumes:
