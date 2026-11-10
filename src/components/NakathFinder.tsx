@@ -115,7 +115,7 @@ export function NakathFinder({
         track("tool_used", { tool: "muhurta" });
         const res = await fetch(apiUrl("/api/nakath/suitable"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
           body: JSON.stringify(body),
         });
         const json = await res.json();

@@ -1,3 +1,4 @@
+import { requireFeature } from "@/lib/account/server";
 import { NextResponse } from "next/server";
 import {
   INTERESTS,
@@ -9,7 +10,8 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   return NextResponse.json({
     ok: true,
     countries: LIVING_COUNTRIES,

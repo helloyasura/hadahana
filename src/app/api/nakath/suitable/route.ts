@@ -1,3 +1,4 @@
+import { requireFeature } from "@/lib/account/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { birthSchema } from "@/lib/astrology/birth-schema";
@@ -76,7 +77,8 @@ const schema = z
     }
   });
 
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   return NextResponse.json({
     ok: true,
     events: listEventCategories(),
@@ -101,6 +103,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   try {
     const body = schema.parse(await req.json());
     const eventId = body.eventId as EventCategoryId;

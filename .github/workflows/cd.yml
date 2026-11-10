@@ -108,6 +108,8 @@ jobs:
       - name: Render .env bootstrap
         env:
           OPENAI_API_KEY: ${{ secrets.HANDAHANA_OPENAI_API_KEY || secrets.OPENAI_API_KEY || vars.HANDAHANA_OPENAI_API_KEY }}
+          LUMS_API_URL: ${{ vars.LUMS_API_URL || 'https://lums.ervanta.com/api' }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           OPENAI_MODEL: ${{ vars.HANDAHANA_OPENAI_MODEL || 'gpt-4.1-mini' }}
           HANDAHANA_IMAGE: ${{ needs.build-and-push.outputs.image }}
         run: |
@@ -119,8 +121,11 @@ jobs:
           HANDAHANA_IMAGE=${HANDAHANA_IMAGE}
           OPENAI_API_KEY=${OPENAI_API_KEY:-}
           OPENAI_MODEL=${OPENAI_MODEL}
+          LUMS_API_URL=${LUMS_API_URL}
+          SESSION_SECRET=${SESSION_SECRET}
           EOF
           sed -i 's/^[[:space:]]*//' .env.bootstrap
+          chmod 600 .env.bootstrap
           test -s .env.bootstrap
 
       - name: Stage deploy bundle + export image
@@ -175,8 +180,8 @@ jobs:
               fi
             fi
             if [[ -f .env.bootstrap ]]; then
-              grep -E '^HANDAHANA_IMAGE=' .env.bootstrap > .env.imagepin
-              grep -v '^HANDAHANA_IMAGE=' .env > .env.noid || true
+              grep -E '^(HANDAHANA_IMAGE|LUMS_API_URL|SESSION_SECRET)=' .env.bootstrap > .env.imagepin
+              grep -v -E '^(HANDAHANA_IMAGE|LUMS_API_URL|SESSION_SECRET)=' .env > .env.noid || true
               cat .env.noid .env.imagepin > .env
               rm -f .env.noid .env.imagepin
             fi

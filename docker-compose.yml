@@ -28,6 +28,8 @@ services:
       HOSTNAME: ${HANDAHANA_BIND_ADDRESS:-127.0.0.1}
       NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/hadahana}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      LUMS_API_URL: ${LUMS_API_URL:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       NAME_FEEDBACK_DB_PATH: /var/lib/handahana/name-feedback.json
     volumes:

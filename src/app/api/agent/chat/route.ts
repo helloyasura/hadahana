@@ -1,3 +1,4 @@
+import { requireFeature } from "@/lib/account/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { runAthurudayaAgent } from "@/lib/agent/athurudaya";
@@ -43,6 +44,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  const denied = await requireFeature(req); if (denied) return denied;
   try {
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(

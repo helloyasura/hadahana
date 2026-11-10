@@ -1,5 +1,7 @@
 "use client";
 
+import { AccountPanel } from "@/components/AccountPanel";
+import type { Profile } from "@/lib/account/types";
 import { track } from "@/lib/analytics";
 import { useEffect, useState, useTransition } from "react";
 import {
@@ -92,6 +94,23 @@ function placeLabels(lang: Lang) {
 }
 
 export function Workspace() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [preview, setPreview] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    async function refresh() {
+      try {
+        const j = await fetch(apiUrl("/api/account"), { cache: "no-store" }).then(r => r.json());
+        if (j.ok) { setProfile(j.profile); if (!j.profile?.license.active) setCastData(null); }
+        else { setProfile(null); setCastData(null); }
+      } catch { setProfile(null); setCastData(null); }
+    }
+    void refresh();
+    const timer = window.setInterval(refresh, 60000);
+    const id = new URLSearchParams(window.location.search).get("horoscope");
+    if (id) void openHoroscope(id);
+    return () => window.clearInterval(timer);
+  }, []);
   const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
   const [motionPaused, setMotionPaused] = useState(false);
   useEffect(() => {
@@ -134,6 +153,29 @@ export function Workspace() {
   const nam = chart?.namThebima as Record<string, unknown> | undefined;
   const letterSet = nam?.letterSet as Record<string, unknown> | undefined;
 
+  const unlocked = !!profile?.license.active && !!castData?.horoscopeId;
+  async function openHoroscope(id: string) {
+    try {
+      const j = await fetch(apiUrl(`/api/horoscopes/${encodeURIComponent(id)}`), { cache: "no-store" }).then(r => r.json());
+      if (!j.ok) throw new Error(j.error);
+      if (j.birth) {
+        const b = j.birth;
+        setBirth({ nativeName: b.nativeName || "", date: b.date, time: b.time, gender: b.gender || "unspecified", place: { placeId: b.placeId || "", placeName: b.placeName || "", latitude: String(b.latitude ?? ""), longitude: String(b.longitude ?? ""), useCustomCoords: b.latitude != null && b.longitude != null } });
+      }
+      setCastData(j); setPreview(null); setTab("chart");
+      document.getElementById("workspace-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch(e) { setError(e instanceof Error ? e.message : "Unable to open horoscope"); }
+  }
+  function changeProfile(next: Profile | null) {
+    setProfile(next);
+    if (!next?.license.active) { setCastData(null); setTab("chart"); setPorondamData(null); setMuhurtaData(null); setPanchangaData(null); }
+  }
+  function gate() {
+    if (unlocked) return true;
+    setError(!castData && !preview ? (lang === "si" ? "පළමුව හඳහනක් සාදන්න." : "Generate your horoscope first.") : !profile ? (lang === "si" ? "ඉදිරියට යාමට ලියාපදිංචි වන්න." : "Create a profile or sign in to continue.") : "Buy or renew your license in LUMS to continue.");
+    if (castData || preview) setAccountOpen(true);
+    return false;
+  }
   function runCast() {
     track("tool_used", { tool: "chart" });
     setError(null);
@@ -141,12 +183,18 @@ export function Workspace() {
       try {
         const res = await fetch(apiUrl("/api/cast"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
           body: JSON.stringify(toPayload(birth)),
         });
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || t(lang, "error"));
-        setCastData(json);
+        setCastData(json.preview ? null : json);
+        setPreview(json.preview || null);
+        if (json.preview) { setAccountOpen(true); window.setTimeout(() => document.querySelector(".horoscope-preview")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }
+        if (json.horoscopeId) {
+          const account = await fetch(apiUrl("/api/account"), { cache: "no-store" }).then(r => r.json());
+          if (account.ok) setProfile(account.profile);
+        }
         track("chart_generated");
         setTab("chart");
       } catch (e) {
@@ -156,13 +204,14 @@ export function Workspace() {
   }
 
   function runPorondam() {
+    if (!gate()) return;
     track("tool_used", { tool: "porondam" });
     setError(null);
     startTransition(async () => {
       try {
         const res = await fetch(apiUrl("/api/porondam"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
           body: JSON.stringify({
             personA: toPayload(birth),
             personB: toPayload(partner),
@@ -180,13 +229,14 @@ export function Workspace() {
   }
 
   function runMuhurta() {
+    if (!gate()) return;
     track("tool_used", { tool: "muhurta" });
     setError(null);
     startTransition(async () => {
       try {
         const res = await fetch(apiUrl("/api/muhurta"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
           body: JSON.stringify({
             date: birth.date,
             ...placePayload(birth.place),
@@ -204,13 +254,14 @@ export function Workspace() {
   }
 
   function runPanchanga() {
+    if (!gate()) return;
     track("tool_used", { tool: "panchanga" });
     setError(null);
     startTransition(async () => {
       try {
         const res = await fetch(apiUrl("/api/panchanga"), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
           body: JSON.stringify({
             date: birth.date,
             ...placePayload(birth.place),
@@ -228,18 +279,9 @@ export function Workspace() {
   }
 
   function downloadJson() {
-    if (!castData) return;
-    track("tool_used", { tool: "export" });
+    if (!gate() || !castData?.horoscopeId) return;
     track("chart_exported", { mode: "json" });
-    const blob = new Blob([JSON.stringify(castData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `handahana-${birth.date}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    window.location.assign(apiUrl(`/api/horoscopes/${encodeURIComponent(String(castData.horoscopeId))}?download=1`));
   }
 
   return (
@@ -248,6 +290,7 @@ export function Workspace() {
       data-motion={motionPaused ? "paused" : "playing"}
     >
       <RevealObserver />
+      <div className="profile-shortcuts no-print"><button className="ghost" type="button" onClick={() => { setAccountOpen(!accountOpen); window.setTimeout(() => document.getElementById("account-panel")?.scrollIntoView({ behavior: "smooth" }), 50); }}>{profile ? (lang === "si" ? "මගේ පැතිකඩ" : "My profile") : (lang === "si" ? "ලියාපදිංචිය / ඇතුළු වීම" : "Sign in / create profile")} ↗</button><a href={apiUrl("/profile")}>{lang === "si" ? "පැතිකඩ පිටුව" : "Profile page"}</a></div>
       <a className="skip-link" href="#birth-details">
         {lang === "si" ? "උපන් විස්තර වෙත" : "Skip to birth details"}
       </a>
@@ -320,7 +363,7 @@ export function Workspace() {
               type="button"
               className="ghost"
               onClick={runMuhurta}
-              disabled={pending}
+              disabled={pending || !unlocked}
             >
               {t(lang, "tabMuhurta")}
             </button>
@@ -452,6 +495,9 @@ export function Workspace() {
         </ul>
       </section>
 
+      {preview && <section className="panel horoscope-preview no-print" aria-label="Horoscope preview"><span className="section-index">YOUR FIRST GLIMPSE</span><h2>{lang === "si" ? "ඔබේ හඳහන සූදානම්" : "Your horoscope is ready"} ✦</h2><div className="preview-signs"><div><small>LAGNA / ලග්නය</small><strong>{String((preview.lagna as Record<string, unknown>)?.rashi || "—")}</strong></div><div><small>MOON / චන්ද්‍ර</small><strong>{String((preview.chandra as Record<string, unknown>)?.rashi || "—")}</strong></div></div><p>{lang === "si" ? "සම්පූර්ණ හඳහන, මුද්‍රණය සහ සියලු මෙවලම් සඳහා ඉහත පැතිකඩක් සාදන්න." : "Create a profile above to save this horoscope and unlock the full chart, downloads and every studio tool. Your preview is kept for 24 hours on this browser."}</p></section>}
+      {(accountOpen || profile) && <AccountPanel profile={profile} onProfile={changeProfile} lang={lang} hasPreview={!!preview} onOpen={id => { void openHoroscope(id); }} />}
+      {!unlocked && <p className="studio-lock no-print" role="status">{lang === "si" ? "පළමුව හඳහන සාදන්න. සියලු මෙවලම් සඳහා පැතිකඩක් සහ ක්‍රියාකාරී බලපත්‍රයක් අවශ්‍යයි." : "Generate a horoscope first. Studio tools require sign-in and an active trial or license."}</p>}
       <nav className="tabs reveal" aria-label="Workspace tabs">
         {TABS.map((tabItem) => (
           <button
@@ -461,6 +507,7 @@ export function Workspace() {
             aria-pressed={tab === tabItem.id}
             aria-controls="workspace-results"
             data-analytics-safe="true"
+            disabled={tabItem.id !== "chart" && !unlocked}
             onClick={() => { setTab(tabItem.id); track("tool_opened", { tool: tabItem.id }); if (castData && ["chart", "palapala", "dosha"].includes(tabItem.id)) track("tool_used", { tool: tabItem.id }); }}
           >
             {t(lang, tabItem.key)}
@@ -476,6 +523,7 @@ export function Workspace() {
           </div>
         ) : null}
         <div key={tab} className="result-reveal">
+          {unlocked || tab === "chart" ? <>
           {!satahana &&
           !chart &&
           tab !== "porondam" &&
@@ -908,6 +956,7 @@ export function Workspace() {
               ) : null}
             </div>
           ) : null}
+          </> : null}
         </div>
       </main>
 
