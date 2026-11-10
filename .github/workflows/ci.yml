@@ -24,6 +24,8 @@ jobs:
         run: npm run lint
       - name: Type check
         run: npm run typecheck
+      - name: Deployment failure / rollback regression tests
+        run: bash scripts/verify-deploy.sh
       - name: Unit and naming regression tests (no external AI)
         env:
           OPENAI_API_KEY: ""
@@ -88,18 +90,26 @@ jobs:
                 console.log("Non-root, offline, capped Chromium/Sinhala PDF passed:", pdf.length, "bytes");
               } finally { await browser.close(); }
             })().catch(error => {console.error(error);process.exitCode=1;});'
-      - name: Existing root-owned feedback volume migration smoke
+      - name: Production Compose startup and root-owned feedback volume migration smoke
         run: |
           project="hadahana-feedback-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           volume="${project}_handahana_data"
           docker volume create "$volume" >/dev/null
-          trap 'docker volume rm "$volume" >/dev/null' EXIT
+          export HANDAHANA_IMAGE=hadahana:pdf-pr
+          export HANDAHANA_PORT=14132
+          export COMPOSE_PROJECT_NAME="$project"
+          trap 'docker compose -p "$project" down --volumes' EXIT
           HANDAHANA_IMAGE=hadahana:pdf-pr docker compose -p "$project" config --quiet
           # Keep the simulated legacy volume nonempty: Docker copy-up refreshes
           # ownership of empty volumes from the fixed image before the next run.
           docker run --rm --network=none --user=0:0 -v "$volume:/var/lib/handahana" --entrypoint sh hadahana:pdf-pr -c 'printf preserved-legacy-data > /var/lib/handahana/legacy-fixture.txt && chown -R 0:0 /var/lib/handahana && chmod 755 /var/lib/handahana'
           docker run --rm --network=none -v "$volume:/var/lib/handahana" --entrypoint sh hadahana:pdf-pr -c 'test ! -w /var/lib/handahana'
-          HANDAHANA_IMAGE=hadahana:pdf-pr docker compose -p "$project" run --rm --no-deps handahana-data-init
+          # Exercise the ACTUAL production service dependency, caps, hardening,
+          # loopback networking, healthcheck and limits, not only docker run.
+          docker compose -p "$project" up -d --no-build --wait --wait-timeout 180
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$(docker compose -p "$project" ps -a -q handahana-data-init)")" = 0
+          test "$(docker inspect --format '{{.State.Health.Status}}' "$(docker compose -p "$project" ps -q handahana-web)")" = healthy
+          curl --fail --silent --location http://127.0.0.1:14132/hadahana >/dev/null
           docker run --rm --network=none --memory=128m --pids-limit=32 -v "$volume:/var/lib/handahana" --entrypoint node hadahana:pdf-pr -e '
             const fs=require("node:fs"), assert=require("node:assert/strict");
             assert.equal(process.getuid(),1001);
