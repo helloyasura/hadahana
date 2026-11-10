@@ -4,6 +4,10 @@
 #   cd /opt/handahana && docker compose up -d
 #
 # Host nginx (separate) proxies https://ervanta.com/hadahana → 127.0.0.1:4132
+#
+# Uses host networking (like lums-docker): on the shared droplet docker-proxy
+# published ports return empty replies, so Next.js binds directly to
+# ${HANDAHANA_BIND_ADDRESS}:${HANDAHANA_PORT} on the host (loopback only).
 
 name: handahana
 
@@ -20,21 +24,20 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      PORT: "3000"
-      HOSTNAME: 0.0.0.0
+      PORT: ${HANDAHANA_PORT:-4132}
+      HOSTNAME: ${HANDAHANA_BIND_ADDRESS:-127.0.0.1}
       NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/hadahana}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       NAME_FEEDBACK_DB_PATH: /var/lib/handahana/name-feedback.json
     volumes:
       - handahana_data:/var/lib/handahana
-    ports:
-      - "${HANDAHANA_BIND_ADDRESS:-127.0.0.1}:${HANDAHANA_PORT:-4132}:3000"
+    network_mode: host
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "wget -qO- \"http://127.0.0.1:3000$${NEXT_PUBLIC_BASE_PATH:-/hadahana}\" >/dev/null || wget -qO- \"http://127.0.0.1:3000$${NEXT_PUBLIC_BASE_PATH:-/hadahana}/\" >/dev/null || exit 1",
+          "wget -qO- \"http://$${HOSTNAME:-127.0.0.1}:$${PORT:-4132}$${NEXT_PUBLIC_BASE_PATH:-/hadahana}\" >/dev/null || wget -qO- \"http://$${HOSTNAME:-127.0.0.1}:$${PORT:-4132}$${NEXT_PUBLIC_BASE_PATH:-/hadahana}/\" >/dev/null || exit 1",
         ]
       interval: 20s
       timeout: 5s
