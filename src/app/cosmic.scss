@@ -765,12 +765,7 @@ $surface: rgba(17, 21, 41, 0.86);
       animation: atlas-turn 1s linear infinite;
     }
   }
-  .json-block {
-    background: #090d1d;
-    color: #c0dae2;
-    border: 1px solid $line;
-    border-radius: 12px;
-  }
+
   .error {
     padding: 12px 16px;
     border-left: 2px solid var(--danger);

@@ -16,7 +16,7 @@ Deploy notes: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - Vimshottari maha / antar
 - Dasa Porondam matching
 - Muhurta · Rahu Kalaya · Yamaganda · Gulika (ephemeris-backed)
-- Daily Panchanga
+- Daily Panchanga — bilingual cards and server-rendered PDF preview/download
 - Dosha / yoga screens (Kuja, Kalsarpa, Gaja Kesari…)
 - Sri Lanka hospital / town presets (incl. Asiri Kandy)
 - Server-rendered PDF preview/download — A4, A5, Letter and Legal, portrait or landscape. Sign-in and active license required; no JSON export. See docs/SERVER_PDF.md.
@@ -72,6 +72,7 @@ Verify: `npm run verify:names` (chart මො pairs + manual මො/ර → ස/�
 | `/api/porondam` | POST | `{ personA, personB }` |
 | `/api/muhurta` | POST | `{ date, placeId }` |
 | `/api/panchanga` | POST | `{ date, placeId }` |
+| `/api/panchanga/pdf?size=A4&orientation=portrait` | POST | validated date/place → private PDF; active license required |
 | `/api/places` | GET | SL presets |
 
 Birth body fields: `date`, `time`, `placeId` (or lat/lon), optional `nativeName`, `gender`, `ayanamsa`.

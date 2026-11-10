@@ -91,7 +91,43 @@ anonymous/expired/wrong-owner/cross-site requests, removed JSON export, download
 and Sinhala/English UI at 390/1280 without horizontal overflow. Page 1 is rendered
 for every size; pages 1–2 for A4 and A5 are available for visual inspection.
 
-PR #7 (email verification) is separate: this branch does not touch account
-handlers, AccountPanel or the verification flow. Both touch Workspace and the
-profile regression test, so merge/rebase carefully and rerun the combined tests.
-PR #8 (favicon) was already in main when this branch started and is retained.
+The profile/PDF browser fixtures complete the email-code verification flow before
+requesting licensed PDFs. Tests never send real email.
+
+## Panchanga report
+
+The Panchanga tab uses bilingual cards (weekday, tithi, nakshatra, yoga, karana,
+paksha, sunrise/sunset) and a readable inauspicious-period list instead of the last
+raw JSON dump. End times include their local calendar date and timezone; unavailable
+values display a dash. The existing library supplies the sunrise almanac values.
+The calculation API remains JSON for the application; no JSON file export is offered.
+
+`POST /api/panchanga/pdf?size=A4&orientation=portrait` accepts the same date/place
+input as `/api/panchanga` (JSON with `X-Hadahana-Action: 1`). It recomputes the
+Panchanga on the server, returning a private inline PDF (`&download=1` for an
+attachment). No saved-chart id is needed for this daily almanac, but sign-in,
+active trial/license and at least one generated horoscope are still required.
+The same Chromium renderer, single-render queue, timeout and **shared** 8-per-user
+PDF budget protect both report types. The UI previews/downloads the same blob.
+
+Input validation rejects unknown properties, impossible dates, dates outside
+1900–2100, invalid timezone names, unknown presets, unpaired or out-of-range
+coordinates, and PDF bodies over 4 KiB. Custom coordinates are supported, including
+explicit zero coordinates. Empty saved coordinate fields no longer override a
+selected preset with 0°N, 0°E. The preview uses the date/place snapshot of the visible
+calculation, not subsequently edited birth form values.
+
+Additional local checks:
+
+```sh
+CHROMIUM_PATH=/usr/bin/google-chrome npm run test:panchanga
+npm run test:panchanga:ui
+```
+
+`PANCHANGA_SHOTS_DIR` overrides `/workspace/hadahana-panchanga-shots`. The unit/render
+suite checks strict validation, missing values, Sinhala/English output, escaping,
+all component source files for JSON dumps, and all four sizes in both orientations
+using `pdfinfo`, embedded Sinhala fonts and `pdftoppm` page-one PNGs. The mock-LUMS
+browser suite checks every workspace tab for raw JSON, the new preview/download,
+selected A5 landscape on mobile, 1280/390 layouts, auth/license/chart gates,
+cross-site requests, input/body limits, and the shared PDF rate limit.

@@ -18,6 +18,9 @@ import {
 import { AthurudayaAgent } from "@/components/AthurudayaAgent";
 import { NameStudio } from "@/components/NameStudio";
 import { NakathFinder } from "@/components/NakathFinder";
+import { PanchangaView } from "@/components/PanchangaView";
+import type { PanchangaData } from "@/lib/astrology/panchanga-view";
+import type { PanchangaInput } from "@/lib/astrology/panchanga-schema";
 import { PdfPanel } from "@/components/PdfPanel";
 import {
   PlaceFields,
@@ -138,10 +141,8 @@ export function Workspace() {
     string,
     unknown
   > | null>(null);
-  const [panchangaData, setPanchangaData] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  const [panchangaData, setPanchangaData] = useState<PanchangaData | null>(null);
+  const [panchangaInput, setPanchangaInput] = useState<PanchangaInput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -258,17 +259,16 @@ export function Workspace() {
     setError(null);
     startTransition(async () => {
       try {
+        const input = { date: birth.date, ...placePayload(birth.place) };
         const res = await fetch(apiUrl("/api/panchanga"), {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Hadahana-Action": "1" },
-          body: JSON.stringify({
-            date: birth.date,
-            ...placePayload(birth.place),
-          }),
+          body: JSON.stringify(input),
         });
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || t(lang, "error"));
         setPanchangaData(json);
+        setPanchangaInput(input);
         track("panchanga_calculated");
         setTab("panchanga");
       } catch (e) {
@@ -818,20 +818,10 @@ export function Workspace() {
               >
                 {t(lang, "tabPanchanga")}
               </button>
-              {panchangaData ? (
-                <pre className="json-block">
-                  {JSON.stringify(
-                    {
-                      vara: panchangaData.vara,
-                      panchang: panchangaData.panchang,
-                      sunriseSunset: panchangaData.sunriseSunset,
-                      inauspiciousLocal: panchangaData.inauspiciousLocal,
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
-              ) : null}
+              {panchangaData ? <>
+                <PanchangaView data={panchangaData} lang={lang} />
+                <PdfPanel lang={lang} panchanga={panchangaInput || undefined} />
+              </> : null}
             </div>
           ) : null}
 

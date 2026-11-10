@@ -266,8 +266,9 @@ export function emptyPlaceForm(
 }
 
 export function placePayload(place: PlaceFormValue) {
-  const lat = Number(place.latitude);
-  const lon = Number(place.longitude);
+  // Empty saved fields are not 0°N, 0°E: let the preset resolve on the server.
+  const lat = place.latitude.trim() ? Number(place.latitude) : NaN;
+  const lon = place.longitude.trim() ? Number(place.longitude) : NaN;
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
   const custom =
     place.useCustomCoords || place.placeId === "custom" || !place.placeId;
