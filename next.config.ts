@@ -15,6 +15,7 @@ const basePath =
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["playwright-core"],
+  outputFileTracingIncludes: { "/api/horoscopes/*/pdf": ["./node_modules/playwright-core/**/*"] },
   basePath: basePath || undefined,
   assetPrefix: basePath || undefined,
   allowedDevOrigins: ["127.0.0.1", "localhost", "ervanta.com", "www.ervanta.com"],

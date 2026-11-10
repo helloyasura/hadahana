@@ -39,6 +39,9 @@ RUN apk add --no-cache wget chromium font-noto-sinhala \
 COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Next tracing misses Playwright runtime JSON/assets loaded by dynamic paths.
+# Copy the complete core package (no browser binary) so Chromium can launch.
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/playwright-core ./node_modules/playwright-core
 
 USER nextjs
 EXPOSE 3000
