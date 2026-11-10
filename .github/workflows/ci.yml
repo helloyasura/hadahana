@@ -80,7 +80,7 @@ jobs:
     env:
       CHROMIUM_PATH: /usr/bin/google-chrome
       NEXT_TELEMETRY_DISABLED: "1"
-      PANCHANGA_SHOTS_DIR: ${{ runner.temp }}/panchanga-artifacts
+      PANCHANGA_SHOTS_DIR: /tmp/panchanga-artifacts
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -98,4 +98,4 @@ jobs:
         if: always()
         with:
           name: panchanga-pdf-evidence
-          path: ${{ runner.temp }}/panchanga-artifacts
+          path: /tmp/panchanga-artifacts
