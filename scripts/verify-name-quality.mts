@@ -167,17 +167,18 @@ assert.equal(
   NAME_CATALOGUE.length,
   "No duplicate Roman names",
 );
-await writeFile(
-  "/workspace/hadahana-names-shots/after.json",
-  JSON.stringify(
-    {
-      names,
-      review: NAME_CATALOGUE.filter((n) => n.meaningStatus === "review"),
-    },
-    null,
-    2,
-  ),
-).catch(() => {});
+if (process.env.NAME_QUALITY_OUTPUT_PATH)
+  await writeFile(
+    process.env.NAME_QUALITY_OUTPUT_PATH,
+    JSON.stringify(
+      {
+        names,
+        review: NAME_CATALOGUE.filter((n) => n.meaningStatus === "review"),
+      },
+      null,
+      2,
+    ),
+  );
 console.log(
   "Name-quality tests passed. Deterministic Buddhist boy fixture top 20 pairs:",
 );
