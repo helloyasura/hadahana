@@ -1,19 +1,17 @@
 // Only public configuration belongs here. Do not pass form values to analytics.
 import type { PostHog } from 'posthog-js';
+import { cleanProps, sanitizePosthogEvent } from './analyticsSanitize';
 const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY || '';
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
 const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || '';
 export const CONSENT_KEY = 'hadahana.analytics-consent.v1';
 type Props = Record<string, string | number | boolean>;
-const propertyKeys = new Set(['app', 'tool', 'product_slug', 'category', 'result_count', 'query_length', 'step', 'method', 'language', 'mode', 'paper', 'action', 'source', 'page_path']);
 let client: PostHog | undefined;
 let loading: Promise<void> | undefined;
 let generation = 0;
 let userId: string | undefined;
 let currentPath = '/';
 let lastPageview: string | undefined;
-const cleanProps = (props: Props): Props => Object.fromEntries(Object.entries(props).filter(([key, value]) =>
-  propertyKeys.has(key) && (typeof value === 'number' || typeof value === 'boolean' || (typeof value === 'string' && /^[a-zA-Z0-9_./#:-]{1,120}$/.test(value)))));
 export function doNotTrack(): boolean {
   return typeof navigator !== 'undefined' && (navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes');
 }
@@ -85,16 +83,8 @@ async function initialize(): Promise<void> {
           save_referrer: false, save_campaign_params: false,
           before_send: (event) => {
             if (!event || !allowed()) return null;
-            // Discard default URL/referrer, DOM text/attributes and profile properties.
-            const safe = cleanProps(event.properties || {});
-            for (const key of ['distinct_id', '$device_id', '$user_id', '$session_id', '$lib', '$lib_version', '$is_identified', '$anon_distinct_id', '$process_person_profile', '$event_type']) {
-              if (event.properties?.[key] !== undefined) safe[key] = event.properties[key];
-            }
-            delete event.$set;
-            delete event.$set_once;
-            const path = typeof safe.page_path === 'string' ? safe.page_path : currentPath;
-            event.properties = { ...safe, app: 'hadahana', $current_url: window.location.origin + path, $pathname: path, $referrer: '', $ip: '0.0.0.0', $geoip_disable: true };
-            return event;
+            // Keep the project API token and SDK envelope; still strip PII and URL query params.
+            return sanitizePosthogEvent(event, { origin: window.location.origin, path: currentPath, app: 'hadahana' });
           },
         });
         client = posthog;
