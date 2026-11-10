@@ -12,6 +12,24 @@
 name: handahana
 
 services:
+  # Existing named volumes may be root-owned from older images. Repair only this
+  # app's feedback volume before dropping privileges; never touch host app paths.
+  handahana-data-init:
+    image: ${HANDAHANA_IMAGE:-hadahana:local}
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mkdir -p /var/lib/handahana && chown -R 1001:1001 /var/lib/handahana && chmod 700 /var/lib/handahana"]
+    volumes:
+      - handahana_data:/var/lib/handahana
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 32m
+    pids_limit: 16
+    restart: "no"
+
   handahana-web:
     image: ${HANDAHANA_IMAGE:-hadahana:local}
     build:
@@ -20,6 +38,9 @@ services:
       args:
         NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/hadahana}
         CACHEBUST: ${CACHEBUST:-0}
+    depends_on:
+      handahana-data-init:
+        condition: service_completed_successfully
     container_name: handahana-web
     restart: unless-stopped
     environment:

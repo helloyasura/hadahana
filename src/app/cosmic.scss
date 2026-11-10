@@ -1187,3 +1187,15 @@ $surface: rgba(17, 21, 41, 0.86);
 .period-list {display:grid;gap:1rem;}
 .period-card {border:1px solid #49516d;border-radius:16px;padding:clamp(1rem,3vw,1.6rem);overflow-wrap:anywhere;line-height:1.8; &[data-current="true"] {border-color:#9be8df; background:rgba(111,212,200,.06);} header {display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;} h4 {margin:0;} summary {cursor:pointer;color:#9be8df;} li {margin-block:.5rem;} }
 .period-note {padding:1rem;border-left:3px solid #9be8df;background:rgba(111,212,200,.06);}
+.name-quality-tags {font-size:.85rem;line-height:1.9;color:#b8e9e0;overflow-wrap:anywhere;}
+.name-review-warning,.name-notice {border-left:3px solid #e2c590;padding:.8rem 1rem;background:rgba(226,197,144,.07);line-height:1.9;}
+.name-studio details {font-size:.85rem;line-height:1.8;summary {cursor:pointer;color:#9be8df;} a {color:#b8e9e0;overflow-wrap:anywhere;}}
+.workspace .name-studio > .place-custom-toggle {display:flex;align-items:flex-start;line-height:1.9;input {flex:0 0 auto;margin-top:.4em;accent-color:#9be8df;}}
+
+.name-derived-note {
+  font-size: .82rem;
+  color: var(--text-muted, #b4b1c7);
+  line-height: 1.6;
+  border-left: 2px solid #8bbfc0;
+  padding-left: .65rem;
+}

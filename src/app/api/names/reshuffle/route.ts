@@ -1,6 +1,7 @@
 import { requireFeature } from "@/lib/account/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { reshuffleSchema as schema } from "@/lib/names/reshuffle-schema";
 import {
   buildLearningSnapshot,
   recordFeedback,
@@ -10,77 +11,24 @@ import type { SuggestedName } from "@/lib/names/types";
 
 export const runtime = "nodejs";
 
-const namePartSchema = z.object({
-  sinhala: z.string(),
-  roman: z.string(),
-  startsWith: z.string(),
-  isPrimaryLetter: z.boolean(),
-});
-
-const suggestedSchema = z.object({
-  sinhala: z.string(),
-  roman: z.string(),
-  first: namePartSchema,
-  middle: namePartSchema,
-  startsWith: z.string(),
-  isPrimaryLetter: z.boolean(),
-  meaningSi: z.string(),
-  meaningEn: z.string(),
-  whySi: z.string(),
-  whyEn: z.string(),
-  familyFitSi: z.string(),
-  familyFitEn: z.string(),
-  countryFitSi: z.string(),
-  countryFitEn: z.string(),
-  agentId: z.string(),
-  agentLabelSi: z.string(),
-  agentLabelEn: z.string(),
-  score: z.number(),
-  letterSource: z.enum(["chart", "manual"]),
-  usageVerified: z.boolean().optional(),
-  usageNoteSi: z.string().optional(),
-  usageNoteEn: z.string().optional(),
-  factors: z.record(z.string(), z.number()).optional(),
-  alignWhySi: z.string().optional(),
-  alignWhyEn: z.string().optional(),
-});
-
-const schema = z.object({
-  part: z.enum(["first", "middle"]),
-  current: suggestedSchema,
-  pool: z.array(suggestedSchema).max(80).optional().default([]),
-  firstLetters: z.array(z.string()).min(1).max(32),
-  middleLetters: z.array(z.string()).max(32).optional().default([]),
-  primary: z.string().min(1),
-  gender: z.enum(["male", "female", "unspecified"]).optional().default("unspecified"),
-  country: z
-    .enum(["lk", "au", "uk", "us", "ca", "ae", "sg", "in", "other"])
-    .optional()
-    .default("lk"),
-  letterSource: z.enum(["chart", "manual"]).optional().default("chart"),
-  sessionId: z.string().max(80).optional(),
-  /** Record a downrate for the replaced part (default true). */
-  recordDownvote: z.boolean().optional().default(true),
-});
-
 export async function POST(req: Request) {
-  const denied = await requireFeature(req); if (denied) return denied;
+  const denied = await requireFeature(req);
+  if (denied) return denied;
   try {
-    const body = schema.parse(await req.json());
+    if (Number(req.headers.get("content-length") || 0) > 768000)
+      return NextResponse.json(
+        { ok: false, error: "Name request is too large." },
+        { status: 413 },
+      );
+    const raw = await req.text();
+    if (new TextEncoder().encode(raw).length > 768000)
+      return NextResponse.json(
+        { ok: false, error: "Name request is too large." },
+        { status: 413 },
+      );
+    const body = schema.parse(JSON.parse(raw));
     const current = body.current as SuggestedName;
     const pool = body.pool as SuggestedName[];
-
-    if (body.recordDownvote) {
-      await recordFeedback({
-        action: "down",
-        target: body.part,
-        firstRoman: current.first.roman,
-        firstSinhala: current.first.sinhala,
-        middleRoman: current.middle.roman,
-        middleSinhala: current.middle.sinhala,
-        sessionId: body.sessionId,
-      });
-    }
 
     const learning = await buildLearningSnapshot();
     const next = reshuffleNamePart({
@@ -97,6 +45,11 @@ export async function POST(req: Request) {
       letterSource: body.letterSource,
       learning,
       agentId: current.agentId,
+      religionContext: body.religionContext,
+      includeTraditional: body.includeTraditional,
+      includeReview: body.includeReview,
+      excludePairs: body.excludePairs,
+      excludeParts: body.excludeParts,
     });
 
     if (!next) {
@@ -104,16 +57,58 @@ export async function POST(req: Request) {
         {
           ok: false,
           error:
-            "No alternative name part found — try generating more names first.",
+            "No unused compatible replacement remains. Regenerate names or change letters/preferences; older suggestions may need regenerating.",
           learning,
         },
         { status: 409 },
       );
     }
 
-    return NextResponse.json({ ok: true, name: next, learning });
+    let feedbackSaved = true;
+    if (body.recordDownvote) {
+      try {
+        await recordFeedback({
+          action: "down",
+          target: body.part,
+          firstRoman: current.first.roman,
+          firstSinhala: current.first.sinhala,
+          middleRoman: current.middle.roman,
+          middleSinhala: current.middle.sinhala,
+          sessionId: body.sessionId,
+        });
+      } catch {
+        // A storage outage is not an invalid client request. The replacement is
+        // safe and session exclusions still prevent repeats; do not expose paths.
+        feedbackSaved = false;
+        console.warn("name_feedback_write_unavailable");
+      }
+    }
+    return NextResponse.json(
+      {
+        ok: true,
+        name: next,
+        learning,
+        feedbackSaved,
+        warning: feedbackSaved
+          ? undefined
+          : "Name replaced, but feedback could not be saved. Please try feedback again later.",
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    const message =
+      err instanceof z.ZodError
+        ? `Invalid name request: ${err.issues.map((i) => i.path.join(".") + " " + i.message).join("; ")}`
+        : err instanceof SyntaxError
+          ? "Invalid JSON name request."
+          : "Unable to replace this name. Please regenerate and try again.";
+    return NextResponse.json(
+      { ok: false, error: message },
+      {
+        status:
+          err instanceof z.ZodError || err instanceof SyntaxError ? 400 : 503,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
   }
 }

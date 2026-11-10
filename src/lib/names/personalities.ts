@@ -55,12 +55,12 @@ export const RELIGION_OPTIONS: Array<{
   en: string;
 }> = [
   { id: "unspecified", si: "සඳහන් නොකරයි", en: "Not specified" },
-  { id: "buddhist", si: "බෞද්ධ", en: "Buddhist" },
-  { id: "hindu", si: "හින්දු", en: "Hindu" },
-  { id: "christian", si: "ක්‍රිස්තියානි", en: "Christian" },
-  { id: "islamic", si: "ඉස්ලාම්", en: "Islamic" },
+  { id: "buddhist", si: "බෞද්ධ / සිංහල", en: "Buddhist / Sinhala" },
+  { id: "hindu", si: "හින්දු / දෙමළ", en: "Hindu / Tamil" },
+  { id: "christian", si: "ක්‍රිස්තියානි / කතෝලික", en: "Christian / Catholic" },
+  { id: "islamic", si: "මුස්ලිම්", en: "Muslim" },
   { id: "interfaith", si: "අන්තර් ආගමික", en: "Interfaith" },
-  { id: "secular", si: "ලෞකික / ආගම් නොබැඳි", en: "Secular" },
+  { id: "secular", si: "ආගම් නොබැඳි / නවීන", en: "Neutral / modern" },
 ];
 
 export type NameLanguagePref = "si" | "en" | "bilingual";

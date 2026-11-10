@@ -4,7 +4,7 @@ import {
   netScore,
   recordFeedback,
 } from "../src/lib/names/feedback-store";
-import { pairFallbackNames } from "../src/lib/names/name-pipeline";
+import { curatedNames } from "../src/lib/names/curated-names";
 import {
   applyLearningToNames,
   reshuffleNamePart,
@@ -62,16 +62,7 @@ async function main() {
   });
 
   const learning = await buildLearningSnapshot();
-  const pool = pairFallbackNames(
-    ["ම", "මො", "ජ"],
-    ["ර", "ද"],
-    "මො",
-    "male",
-    12,
-    "athurudaya",
-    "lk",
-    "chart",
-  );
+  const pool = curatedNames({firstLetters:["ම"],middleLetters:["ප"],primary:"ම",gender:"male",count:12,letterSource:"chart"});
   const current = {
     ...pool[0],
     first: {
@@ -85,7 +76,7 @@ async function main() {
     part: "first",
     pool,
     firstLetters: ["ම", "මො", "ජ"],
-    middleLetters: ["ර", "ද"],
+    middleLetters: ["ප"],
     primary: "මො",
     gender: "male",
     country: "lk",
