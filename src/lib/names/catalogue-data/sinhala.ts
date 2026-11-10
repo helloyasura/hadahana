@@ -42,7 +42,7 @@ Naveen|නවීන්|male|අලුත් / නැවුම්|New, fresh (San
 Nipun|නිපුන්|male|නිපුණ / දක්ෂ|Skilful, proficient|buddhist,secular|sinhala|modern|2|K:nipuNa|sourced|lexical|
 Nirvan|නිර්වාන්|male|නිවීම / විමුක්තිය|Liberation; Buddhist nirvana name-form|buddhist|sinhala|modern|2|K:nirvANa|sourced|lexical|
 Nimesh|නිමේෂ්|male|ඇසිපිය හෙළන මොහොත|Twinkling of an eye, moment|buddhist,secular|sinhala|modern|2|K:nimeSa|sourced|lexical|
-Nishan|නිශාන්|male|ලකුණ / සංඥාව (පර්සියානු නිශාන් මූලයෙන්)|Derived reading from Persian nishan: sign, mark|buddhist,secular|sinhala|modern|2|https://en.wiktionary.org/wiki/نشان|sourced|name-reference|https://www.behindthename.com/name/nishan/submitted
+Nishan|නිශාන්|male|ලකුණ / සංඥාව (පර්සියානු නිශාන් මූලයෙන්)|Derived reading from Persian nishan: sign, mark|buddhist,secular|sinhala|modern|2|https://en.wiktionary.org/wiki/نشان|sourced|derived|https://www.behindthename.com/name/nishan/submitted
 Nishanth|නිශාන්ත්|male|රාත්‍රියේ අවසානය / අරුණෝදය|Night's end, dawn (nisanta)|buddhist,secular|sinhala|modern|2|K:nizAnta|sourced|lexical|
 Nethra|නේත්‍ර|unisex|ඇස / දර්ශනය|Eye; guiding (Sanskrit netra)|buddhist,secular|sinhala|modern|2|K:netra|sourced|lexical|
 Nuwan|නුවන්|male|නුවණ හෝ ඇස යන සිංහල මූල|Possibly Sinhala wisdom or eye; both readings documented|buddhist,secular|sinhala|timeless|2|https://www.behindthename.com/name/nuwan|sourced|name-reference|

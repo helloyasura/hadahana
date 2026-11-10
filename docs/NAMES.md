@@ -16,7 +16,7 @@ stated reading, not certification of full-name etymology or current popularity.
 | arabic | 104 |
 
 Gender: **263 male, 215 female, 18 unisex**. Evidence: **109 lexical,
-275 name-reference, 63 explicitly derived, 49 unverified**. Era: **386 modern,
+273 name-reference, 65 explicitly derived, 49 unverified**. Era: **386 modern,
 91 timeless, 19 traditional**. Culture is not religion; compatibility tags overlap:
 
 | Preference | Male | Female | Unisex | Total | Sourced | Review-only |
@@ -161,7 +161,7 @@ results/history; this is not permanent cross-device exclusion.
 
 ## Payload and droplet budget
 
-Four compact static chunks in `src/lib/names/catalogue-data/` total **77,811 bytes**
+Four compact static chunks in `src/lib/names/catalogue-data/` total **77,797 bytes**
 plus the existing core catalogue. These are imported only by server routes; the
 browser receives requested result records, not the catalogue. No runtime source
 fetching, vector index, model request or new dependency. Readability was extracted
@@ -169,7 +169,7 @@ into a tiny pure helper so curated ranking need not load LangChain.
 
 A deliberately broad all-context/both-gender request creates only 200 result
 narratives. Box measurement: about281ms, ~15.2MiB incremental heap (GC-dependent),
-496,226-byte JSON for200 results. Tests enforce <96MiB heap delta and <768,000-byte
+~496KB JSON for200 results. Tests enforce <96MiB heap delta and <768,000-byte
 payload. These are local measurements, not a production memory guarantee; the
 2GB droplet still needs normal concurrency limits and existing PDF budgets.
 

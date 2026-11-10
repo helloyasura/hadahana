@@ -36,6 +36,7 @@ for (const n of NAME_CATALOGUE) {
     `${n.roman} must have a real reference link, including review-only records`,
   );
   assert(n.religions.length > 0);
+  if (n.meaningEn.startsWith("Derived")) assert.equal(n.meaningBasis, "derived");
   if (n.meaningBasis === "unverified") assert.equal(n.meaningStatus, "review");
   for (const source of n.supportingSources ?? [])
     assert(/^https:\/\//.test(source));

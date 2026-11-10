@@ -88,7 +88,7 @@ Salma|සල්මා|female|ආරක්ෂිත / නිරුපද්‍ර
 Samira|සමීරා|female|සන්ධ්‍යා කතාබහේ සගිය (අරාබි)|Evening conversation companion; feminine of Samir|islamic|arabic|modern|3|B:samira-1|sourced|name-reference|
 Sana|සනා|female|දීප්තිය / තේජස|Brilliance, radiance (Arabic)|islamic|arabic|modern|2|B:sana-1|sourced|name-reference|
 Shifa|ෂිෆා|female|සුවය / සුව කිරීම|Healing, recovery, cure (Arabic shifa)|islamic|arabic|modern|2|https://en.wiktionary.org/wiki/شفاء|sourced|name-reference|
-Yumna|යුම්නා|female|අයිමන් යන මූලයේ ස්ත්‍රී රූපය: වාසනාවන්ත / දකුණු අතට අයත්|Derived feminine reading of ayman: blessed, right-handed|islamic|arabic|modern|2|https://en.wiktionary.org/wiki/يمنى|sourced|name-reference|B:ayman
+Yumna|යුම්නා|female|අයිමන් යන මූලයේ ස්ත්‍රී රූපය: වාසනාවන්ත / දකුණු අතට අයත්|Derived feminine reading of ayman: blessed, right-handed|islamic|arabic|modern|2|https://en.wiktionary.org/wiki/يمنى|sourced|derived|B:ayman
 Zahra|සහ්රා|female|දීප්තිමත් / බැබළෙන|Shining, brilliant; Fatima epithet (Arabic Zahra)|islamic|arabic|modern|2|B:zahra-1|sourced|name-reference|
 Zaina|සයිනා|female|සුන්දරත්වය (සේන් නාමයේ ස්ත්‍රී රූපය)|Beauty; feminine of Zayn|islamic|arabic|modern|2|B:zayna|sourced|name-reference|
 `;
