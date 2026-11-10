@@ -325,15 +325,7 @@ td {
   color: var(--leaf);
 }
 
-.json-block {
-  overflow: auto;
-  max-height: 420px;
-  background: #132019;
-  color: #d9e8df;
-  padding: 1rem;
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
+
 
 .error {
   color: var(--danger);
@@ -1827,3 +1819,19 @@ td {
 .pdf-panel label {color:#d4daec;}
 .pdf-panel select {color:#e6edf9;background:#0d1427;border:1px solid #6e819d;}
 .pdf-panel a:not(.pdf-download) {color:#94e9f1;}
+
+/* Almanac: readable on small screens, with the same celestial archive palette. */
+.panchanga-view { border: 1px solid rgba(196,166,103,.25); border-radius: 16px; padding: clamp(1rem, 3vw, 2rem); background: linear-gradient(135deg, rgba(196,166,103,.07), rgba(20,36,57,.3)); }
+.panchanga-view header { margin-bottom: 1.5rem; }
+.panchanga-view h2 { margin: .5rem 0; }
+.panchanga-view p { overflow-wrap: anywhere; }
+.panchanga-grid, .panchanga-sun { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0; }
+.panchanga-sun { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panchanga-card { min-width: 0; border: 1px solid rgba(196,166,103,.2); background: rgba(13,24,41,.4); border-radius: 12px; padding: 1rem; }
+.panchanga-view dt { font-size: .85rem; opacity: .75; line-height: 1.7; }
+.panchanga-view dd { margin: .4rem 0 0; font-size: 1.2rem; line-height: 1.7; overflow-wrap: anywhere; }
+.panchanga-view .panchanga-detail { font-size: .78rem; opacity: .7; }
+.panchanga-periods { margin: 1rem 0; }
+.panchanga-periods > div { display: flex; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-bottom: 1px solid rgba(196,166,103,.18); }
+.panchanga-periods dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 1rem; }
+@media (max-width: 600px) { .panchanga-grid { grid-template-columns: 1fr; } .panchanga-sun { gap: .5rem; } .panchanga-card { padding: .8rem; } .panchanga-periods > div { flex-direction: column; gap: .25rem; } }

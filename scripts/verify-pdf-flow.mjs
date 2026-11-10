@@ -22,6 +22,7 @@ try {
     assert.equal((await context.request.get(root+'/api/horoscopes/no/pdf')).status(),401);
     await post('/api/cast',{date:'1995-06-15',time:'10:30',placeId:'colombo',nativeName:'ශ්‍රී චන්ද්‍ර ප්‍රඥා'});
     assert.equal((await post('/api/account',{action:'signup',name:'Local PDF test',email:`pdf${width}@example.test`,password:'Local-test123'})).status(),200);
+    assert.equal((await post('/api/account',{action:'verify-email',code:'123456'})).status(),200);
     const account=await(await context.request.get(root+'/api/account')).json();
     const id=account.profile.horoscopes[0].id;
     assert.equal((await context.request.get(root+'/api/horoscopes/not-mine/pdf')).status(),404);

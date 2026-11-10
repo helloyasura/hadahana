@@ -19,7 +19,9 @@
     "test:profile": "node scripts/verify-profile-flow.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
     "test:pdf": "tsx scripts/verify-pdf.mts",
-    "test:pdf:ui": "node scripts/verify-pdf-flow.mjs"
+    "test:pdf:ui": "node scripts/verify-pdf-flow.mjs",
+    "test:panchanga": "tsx scripts/verify-panchanga.mts",
+    "test:panchanga:ui": "node scripts/verify-panchanga-flow.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.3.5",
