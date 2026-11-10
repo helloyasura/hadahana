@@ -101,7 +101,7 @@ export function Workspace() {
     async function refresh() {
       try {
         const j = await fetch(apiUrl("/api/account"), { cache: "no-store" }).then(r => r.json());
-        if (j.ok) { setProfile(j.profile); if (!j.profile?.license.active) setCastData(null); }
+        if (j.ok) { if (j.pendingVerification) setAccountOpen(true); setProfile(j.profile); if (!j.profile?.license.active) setCastData(null); }
         else { setProfile(null); setCastData(null); }
       } catch { setProfile(null); setCastData(null); }
     }
