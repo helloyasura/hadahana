@@ -108,6 +108,9 @@ export function nameMatchesLetter(
     // Allow when the selected letter is vowel-marked (මො) or is the base itself.
     return true;
   }
+  // A known Sinhala spelling is authoritative. Roman "Th" also starts with
+  // "T", but dental ත must never satisfy retroflex ට (or ද satisfy ඩ).
+  if (/[\u0D80-\u0DFF]/.test(L) && /[\u0D80-\u0DFF]/.test(n)) return false;
   const roman = nameRoman.trim().toLowerCase();
   return romanPrefixesForLetter(L).some((p) => roman.startsWith(p));
 }

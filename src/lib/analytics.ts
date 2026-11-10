@@ -20,7 +20,7 @@ export function consentChoice(): string | null {
   try { return localStorage.getItem(CONSENT_KEY); } catch { return null; }
 }
 function allowed(): boolean {
-  return typeof window !== 'undefined' && configured() && !doNotTrack() && consentChoice() === 'accepted';
+  return typeof window !== 'undefined' && !/(?:^|\/)pro(?:\/|$)/.test(window.location.pathname) && configured() && !doNotTrack() && consentChoice() === 'accepted';
 }
 type AnalyticsWindow = Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
 const win = () => window as AnalyticsWindow;

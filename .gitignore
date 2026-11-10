@@ -49,3 +49,9 @@ knowledge/.index.json
 next-env.d.ts
 AGENTS.md
 tsconfig.tsbuildinfo
+
+# Private Pro store (never commit personal data)
+/data/jyotisha-pro.enc*
+
+# Deployment-only local known-good image checkpoint
+.last-good-image*

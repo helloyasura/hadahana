@@ -24,7 +24,9 @@ const missing=panchangaRows({...data,vara:null,panchang:null,sunriseSunset:{...d
 assert.equal(missing.sun[0].value,"—");assert.equal(missing.periods[0].value,"—");
 const unsafe=panchangaPdfTemplate({...data,place:'<img src="http://169.254.169.254/">'},"A4","portrait");assert(!unsafe.includes("<img"));assert(unsafe.includes("&lt;img"));
 // Guard all tab components against a new raw-result dump or JSON export.
-for(const file of await readdir("src/components")){
+for(const entry of await readdir("src/components",{withFileTypes:true})){
+ if(!entry.isFile()) continue;
+ const file=entry.name;
  const source=await readFile(`src/components/${file}`,"utf8");
  assert(!/<pre\b|className="json-block"|download[^\n]*\.json|application\/json[^\n]*Blob/.test(source),file);
 }

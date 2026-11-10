@@ -12,6 +12,26 @@
 name: handahana
 
 services:
+  # Existing named volumes may be root-owned from older images. Repair only this
+  # app's feedback volume before dropping privileges; never touch host app paths.
+  handahana-data-init:
+    image: ${HANDAHANA_IMAGE:-hadahana:local}
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mkdir -p /var/lib/handahana && chown -R 1001:1001 /var/lib/handahana && chmod 700 /var/lib/handahana"]
+    volumes:
+      - handahana_data:/var/lib/handahana
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    # Do not set no-new-privileges here: Snap Docker/AppArmor denies the
+    # snap.docker.dockerd -> docker-default exec transition with NNP enabled.
+    # Keep the default AppArmor/seccomp profiles and the minimal capability set.
+    mem_limit: 32m
+    pids_limit: 16
+    restart: "no"
+
   handahana-web:
     image: ${HANDAHANA_IMAGE:-hadahana:local}
     build:
@@ -20,6 +40,9 @@ services:
       args:
         NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-/hadahana}
         CACHEBUST: ${CACHEBUST:-0}
+    depends_on:
+      handahana-data-init:
+        condition: service_completed_successfully
     container_name: handahana-web
     restart: unless-stopped
     environment:
@@ -30,6 +53,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LUMS_API_URL: ${LUMS_API_URL:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
+      PRO_STORAGE_KEY: ${PRO_STORAGE_KEY:-}
+      PRO_DATA_PATH: /var/lib/handahana/jyotisha-pro.enc
+      PRO_PUBLIC_ORIGIN: ${PRO_PUBLIC_ORIGIN:-}
+      PRO_LUMS_API_URL: ${PRO_LUMS_API_URL:-}
+      PRO_LUMS_SERVICE_KEY: ${PRO_LUMS_SERVICE_KEY:-}
+      PRO_TRUST_PROXY: ${PRO_TRUST_PROXY:-0}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
       NAME_FEEDBACK_DB_PATH: /var/lib/handahana/name-feedback.json
     volumes:
