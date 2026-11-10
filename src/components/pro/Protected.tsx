@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { authenticatedOwner } from "@/lib/pro/http";
 import { ProError } from "@/lib/pro/store";
-import { withBasePath } from "@/lib/base-path";
 import Shell from "./Shell";
 export default async function Protected({
   children,
@@ -12,7 +11,8 @@ export default async function Protected({
     await authenticatedOwner();
   } catch (e) {
     if (e instanceof ProError && e.status === 401)
-      redirect(withBasePath("/pro/login"));
+      // next/navigation redirect() already prefixes basePath; adding it again gives /hadahana/hadahana/...
+      redirect("/pro/login");
     return (
       <Shell>
         <section className="pro-card">
