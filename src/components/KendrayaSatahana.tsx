@@ -26,6 +26,8 @@ type Booklet = {
   lunarMonthSi: string;
   pakshaShort: string;
   tithiSi: string;
+  civilWeekdaySi?: string;
+  vedicDate?: string;
   weekdayShortSi: string;
   weekdaySi: string;
   ishta: { hours: string; minutes: string; seconds: string };
@@ -225,6 +227,10 @@ export function KendrayaSatahana({ data }: { data: SatahanaData }) {
           ට
         </DotLine>
 
+        {b.vedicDate && <p className="satahana-subtitle">
+          ව්‍යවහාර දිනය: {b.civilWeekdaySi} · ජ්‍යෝතිෂ දිනය: {b.weekdaySi} ({b.vedicDate})
+          {" · "}ඉෂ්ට කාලය එම දිනයේ සූර්යෝදයේ සිට ගණනය කෙරේ.
+        </p>}
         <DotLine>
           හෙවත් ව්‍යවහාර වර්ෂ <Fill>{b.ceYear}</Fill> ක් වූ{" "}
           <Fill>{b.ceMonthSi}</Fill> මස <Fill>{b.ceDay}</Fill> වැනි දින
@@ -523,6 +529,7 @@ export function KendrayaSatahana({ data }: { data: SatahanaData }) {
         ) : null}
 
         <p className="satahana-balance">{data.dashaBalanceSi}</p>
+        <p className="satahana-subtitle">දශා වර්ෂයක් = දින 365.25 · මාසයක් = වර්ෂයෙන් 1/12 · දින අගය ආසන්න පූර්ණ දිනයට වට කර ඇත.</p>
         <footer className="satahana-footer">{data.footerSi}</footer>
       </div>
     </article>

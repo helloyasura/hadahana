@@ -3,6 +3,8 @@
  * (South-Indian Rashi + Navamsa, graha table, dasha, bhava).
  */
 
+import { birthDay, civilWeekday } from "./birth-day";
+import { vimshottari, splitDashaYears } from "./vimshottari";
 import { computeChart, computeDetailedPanchang } from "vpv-panchangam";
 import { findNekatha, namingLetterSet } from "./nakath-akshara";
 import { resolvePlace } from "./places";
@@ -301,15 +303,6 @@ function raBa(p: {
   return "—";
 }
 
-function yearsToYmd(years: number): { y: number; m: number; d: number } {
-  const totalDays = years * 365.25;
-  const y = Math.floor(totalDays / 365.25);
-  const rem = totalDays - y * 365.25;
-  const m = Math.floor(rem / 30.4375);
-  const d = Math.max(0, Math.round(rem - m * 30.4375));
-  return { y, m, d };
-}
-
 /** South-Indian fixed sign cell order → CSS grid positions */
 export const SI_SIGN_CELLS: Array<{
   signIndex: number;
@@ -379,7 +372,7 @@ function horaAtBirth(
       return GRAHA_SI_FULL[s.name] ?? grahaLabel(s.name).sinhala;
     }
   }
-  return GRAHA_SI_FULL[segments[0]?.name] ?? "—";
+  return "—";
 }
 
 function glyphsFromPlanetsBySign(
@@ -640,12 +633,9 @@ export async function buildSatahana(input: BirthInput) {
     };
   });
 
-  const maha = (raw.dasha as Array<{
-    lord: string;
-    start: string;
-    end: string;
-    years: number;
-  }>).map((d, i) => ({
+  if (!moon) throw new Error("Moon position missing");
+  const dasha = vimshottari(moon.longitude, raw.birth.utc_time);
+  const maha = dasha.maha.map((d, i) => ({
     index: i + 1,
     lord: d.lord,
     lordSi: GRAHA_SI_FULL[d.lord] ?? grahaLabel(d.lord).sinhala,
@@ -656,13 +646,8 @@ export async function buildSatahana(input: BirthInput) {
     years: Number(d.years.toFixed(4)),
   }));
 
-  const antarBlock = (
-    raw.dasha_antar as Array<{
-      lord: string;
-      antardashas: Array<{ lord: string; start: string; end: string; years: number }>;
-    }>
-  )[0];
-  const antar = (antarBlock?.antardashas ?? []).map((a, i) => ({
+  const antarBlock = { lord: dasha.maha[0].lord };
+  const antar = dasha.antar.map((a, i) => ({
     index: i + 1,
     lord: a.lord,
     lordSi: GRAHA_SI_FULL[a.lord] ?? grahaLabel(a.lord).sinhala,
@@ -673,14 +658,14 @@ export async function buildSatahana(input: BirthInput) {
     years: Number(a.years.toFixed(4)),
   }));
 
-  const balanceYears = maha[0]?.years ?? 0;
-  const bal = yearsToYmd(balanceYears);
+  const bal = splitDashaYears(dasha.balanceYears);
+  const day = await birthDay(date, raw.birth.utc_time, place.latitude, place.longitude, place.timezone, panchang);
 
   const sunMoon = panchang.sun_moon as {
     sunrise?: string;
     sunset?: string;
   };
-  const pan = panchang.panchang as {
+  const pan = day.panchang as {
     tithi?: { name?: string; ends_at?: string } | string;
     nakshatra?: { name?: string; pada?: number; ends_at?: string } | string;
     yoga?: { name?: string; ends_at?: string } | string;
@@ -708,18 +693,15 @@ export async function buildSatahana(input: BirthInput) {
     ? namingLetterSet(moon.nakshatra, moon.nakshatra_pada)
     : null;
 
-  const weekdayIdx =
-    typeof vara.index === "number"
-      ? ((vara.index % 7) + 7) % 7
-      : new Date(`${date}T${time}:00+05:30`).getDay();
+  const weekdayIdx = civilWeekday(date);
 
   const drekkana22Lord = drekkanaLord(asc.longitude);
   const navamsa64Lord = navamsaLordFromLon(moon?.longitude ?? asc.longitude);
 
   const birthUtc = String(raw.birth.utc_time ?? `${date}T${time}:00+05:30`);
-  const horaDay = (panchang.hora as { day?: Array<{ name: string; start: string; end: string }> })
+  const horaDay = (day.hora as { day?: Array<{ name: string; start: string; end: string }> })
     ?.day;
-  const horaNight = (panchang.hora as { night?: Array<{ name: string; start: string; end: string }> })
+  const horaNight = (day.hora as { night?: Array<{ name: string; start: string; end: string }> })
     ?.night;
   const birthHora = (() => {
     const h = horaAtBirth(horaDay, birthUtc);
@@ -802,8 +784,8 @@ export async function buildSatahana(input: BirthInput) {
   const ceYear = Number(date.slice(0, 4));
   const ceMonth = Number(date.slice(5, 7));
   const ceDay = Number(date.slice(8, 10));
-  const birthJsDay = new Date(`${date}T12:00:00+05:30`).getDay();
-  const ishta = formatIshta(sunMoon.sunrise, birthUtc);
+  const birthJsDay = day.weekday;
+  const ishta = formatIshta(day.sunrise, birthUtc);
   const lagnaDms = splitDms(asc.dms);
   const horaDiv = horaDivision(asc.longitude);
   const drekDiv = drekkanaDivision(asc.longitude);
@@ -923,7 +905,10 @@ export async function buildSatahana(input: BirthInput) {
     pakshaShort,
     tithiSi: siLabel(TITHI_SI, tithiName),
     weekdayShortSi: weekdayShortSi(birthJsDay),
-    weekdaySi: WEEKDAY_SI[weekdayIdx] ?? "",
+    weekdaySi: WEEKDAY_SI[day.weekday] ?? "",
+    civilWeekdaySi: WEEKDAY_SI[weekdayIdx],
+    vedicDate: day.vedicDate,
+    ishtaSunriseUtc: day.sunrise ?? null,
     ishta,
     ceYear,
     ceMonthSi: MONTH_SI[ceMonth - 1] ?? "",
@@ -996,6 +981,9 @@ export async function buildSatahana(input: BirthInput) {
     meta: {
       weekdaySi: WEEKDAY_SI[weekdayIdx] ?? vara.english ?? "",
       weekdayEn: vara.english ?? "",
+      vedicWeekdaySi: WEEKDAY_SI[day.weekday],
+      vedicWeekdayEn: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day.weekday],
+      vedicDate: day.vedicDate,
       tithi: siLabel(TITHI_SI, tithiName),
       tithiEn: tithiName,
       tithiEnds: localHm(tithiObj?.ends_at, place.timezone),
@@ -1072,6 +1060,7 @@ export async function buildSatahana(input: BirthInput) {
     mahaDasha: maha,
     antarDasha: antar,
     antarMahaLordSi: GRAHA_SI_FULL[antarBlock?.lord ?? ""] ?? antarBlock?.lord ?? "",
+    dashaConvention: { yearDays: dasha.yearDays, elapsedFraction: dasha.elapsedFraction, balanceYears: dasha.balanceYears },
     dashaBalanceSi: `${maha[0]?.lordSi ?? ""}ගේ විංශෝත්තරී මහා දශා ශේෂය අවුරුදු ${bal.y}යි මාස ${bal.m}යි දින ${bal.d}`,
     dashaBalanceEn: `Vimshottari ${maha[0]?.lord ?? ""} balance: ${bal.y}y ${bal.m}m ${bal.d}d`,
     bhavaRows: bhavaRowsEnriched,
