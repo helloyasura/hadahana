@@ -13,7 +13,7 @@ export function splitDashaYears(years: number, yearDays = DASHA_YEAR_DAYS) {
   if (d >= monthDays) { months++; d = 0; }
   return { y: Math.floor(months / 12), m: months % 12, d };
 }
-export function vimshottari(moonLongitude: number, birthIso: string) {
+export function vimshottari(moonLongitude: number, birthIso: string, yearDays = DASHA_YEAR_DAYS) {
   const norm = ((moonLongitude % 360) + 360) % 360;
   const span = 360 / 27;
   const nakIndex = Math.floor(norm / span);
@@ -21,7 +21,8 @@ export function vimshottari(moonLongitude: number, birthIso: string) {
   const firstIndex = nakIndex % 9;
   const balanceYears = (1 - elapsedFraction) * YEARS[firstIndex];
   const birth = Date.parse(birthIso);
-  const yearMs = DASHA_YEAR_DAYS * MS_DAY;
+  if (![360, 365.25].includes(yearDays)) throw new Error("Unsupported dasa year");
+  const yearMs = yearDays * MS_DAY;
   let start = birth;
   const maha = Array.from({ length: 9 }, (_, i) => {
     const idx = (firstIndex + i) % 9;
@@ -43,5 +44,5 @@ export function vimshottari(moonLongitude: number, birthIso: string) {
     cursor = end;
     return row;
   }).filter(d => Date.parse(d.end) > birth);
-  return { maha, antar, balanceYears, elapsedFraction, yearDays: DASHA_YEAR_DAYS };
+  return { maha, antar, balanceYears, elapsedFraction, yearDays };
 }

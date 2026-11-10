@@ -8,14 +8,15 @@ export default function AnalyticsConsent() {
   const [visible, setVisible] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const pathname = usePathname();
+  const isPro = /(?:^|\/)pro(?:\/|$)/.test(pathname);
   const safePath = pathname === "/" || pathname === "/hadahana" ? "/hadahana" : "/hadahana/other";
   useEffect(() => {
     setEnabled(configured() && !doNotTrack());
     setVisible(configured() && !doNotTrack() && !consentChoice());
   }, []);
   useEffect(() => {
-    pageview(safePath);
-  }, [safePath]);
+    if (!isPro) pageview(safePath);
+  }, [safePath, isPro]);
   useEffect(() => {
     const changed = (event: StorageEvent) => {
       if (event.key === CONSENT_KEY && event.newValue !== 'accepted') {
@@ -31,7 +32,7 @@ export default function AnalyticsConsent() {
     setVisible(false);
     if (accept) pageview(safePath);
   }
-  if (!enabled) return null;
+  if (!enabled || isPro) return null;
   return visible ? (
     <aside role="region" aria-label="Analytics consent" style={panel} className="no-print">
       <strong>Help improve Hadahana?</strong>

@@ -29,6 +29,16 @@ jobs:
           OPENAI_API_KEY: ""
           NAME_FEEDBACK_DB_PATH: ${{ runner.temp }}/hadahana-name-feedback.json
         run: npm test
+      - name: Synthetic Pro OTP / tenant isolation / sharing UI
+        env:
+          PRO_SCREENSHOTS_DIR: ${{ runner.temp }}/jyotisha-pro-shots
+        run: npm run test:pro:ui
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jyotisha-pro-synthetic-screenshots
+          path: ${{ runner.temp }}/jyotisha-pro-shots
+          if-no-files-found: ignore
       - name: Production build (basePath /hadahana)
         env:
           NEXT_PUBLIC_BASE_PATH: /hadahana

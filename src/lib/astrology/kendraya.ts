@@ -1,3 +1,5 @@
+import { calculationConfigSchema, DEFAULT_CALCULATION_CONFIG, AYANAMSA_LABELS, type CalculationConfig } from "./config";
+import { applyConfiguredNodes, configuredBirthSunrise } from "./configured-positions";
 import { vimshottari } from "./vimshottari";
 import { birthDay } from "./birth-day";
 import { computeChart } from "vpv-panchangam";
@@ -101,11 +103,12 @@ function padaBorderWarning(
   };
 }
 
-export async function castKendraya(input: BirthInput) {
+export async function castKendraya(input: BirthInput, settings?: CalculationConfig) {
+  const config = calculationConfigSchema.parse(settings ?? { ...DEFAULT_CALCULATION_CONFIG, ayanamsa: input.ayanamsa ?? "lahiri" });
   const date = normalizeDate(input.date);
   const time = normalizeTime(input.time);
   const place = resolvePlace(input);
-  const ayanamsa = input.ayanamsa ?? "lahiri";
+  const ayanamsa = config.ayanamsa;
 
   const raw = await computeChart(
     {
@@ -119,6 +122,7 @@ export async function castKendraya(input: BirthInput) {
     "en",
   );
 
+  applyConfiguredNodes(raw, config);
   const planets = classicNavagraha(raw.planets_data as PlanetRow[]);
   const moon = planets.find((p) => p.name === "Moon");
   if (!moon) {
@@ -131,7 +135,8 @@ export async function castKendraya(input: BirthInput) {
   const lagnaRashi = rashiLabel(raw.ascendant.sign);
   const chandraRashi = rashiLabel(moon.sign);
   const day = await birthDay(date, raw.birth.utc_time, place.latitude, place.longitude, place.timezone);
-  const weekday = day.weekday;
+  const weekday = config.sunriseDisc === "upper-limb" && config.sunriseRefraction
+    ? day.weekday : configuredBirthSunrise(raw.birth.utc_time, place.latitude, place.longitude, place.timezone, config).weekday;
   const weekdayLetters = WEEKDAY_LETTERS[weekday] ?? [];
   const lagnaLetters = LAGNA_LETTERS[lagnaRashi.english] ?? [];
   const especiallyGood = letterSet.allRecommendedSinhala.filter(
@@ -173,7 +178,7 @@ export async function castKendraya(input: BirthInput) {
       .map((g) => g.graha);
   }
 
-  const dasha = vimshottari(moon.longitude, raw.birth.utc_time);
+  const dasha = vimshottari(moon.longitude, raw.birth.utc_time, config.dasaYearDays);
   const mahaDasha = dasha.maha.map((d) => ({
     lord: d.lord,
     lordSinhala: grahaLabel(d.lord).sinhala,
@@ -201,7 +206,7 @@ export async function castKendraya(input: BirthInput) {
   const result = {
     tradition: {
       system: "Sri Lankan Handahana / Kendraya",
-      ayanamsa: "Lahiri (Chitrapaksha)",
+      ayanamsa: AYANAMSA_LABELS[ayanamsa],
       ayanamsaDegrees: Number(raw.birth.ayanamsa.toFixed(6)),
       houseStyle: "Whole-sign (rāśi) houses from Lagna",
       ephemeris: "Swiss Ephemeris (WASM) via Drik Ganita",
