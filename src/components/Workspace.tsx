@@ -1,5 +1,6 @@
 "use client";
 
+import { DoshaPeriods } from "@/components/DoshaPeriods";
 import { AccountPanel } from "@/components/AccountPanel";
 import type { Profile } from "@/lib/account/types";
 import { track } from "@/lib/analytics";
@@ -17,7 +18,6 @@ import {
 import { AthurudayaAgent } from "@/components/AthurudayaAgent";
 import { NameStudio } from "@/components/NameStudio";
 import { NakathFinder } from "@/components/NakathFinder";
-import { DoshaPeriods } from "@/components/DoshaPeriods";
 import { PdfPanel } from "@/components/PdfPanel";
 import {
   PlaceFields,
