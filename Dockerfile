@@ -31,7 +31,9 @@ ENV HOSTNAME=0.0.0.0
 ARG NEXT_PUBLIC_BASE_PATH=/hadahana
 ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 
-RUN apk add --no-cache wget \
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser
+# System Chromium only: no Playwright browser download; Sinhala HarfBuzz fonts.
+RUN apk add --no-cache wget chromium font-noto-sinhala \
   && addgroup -S nodejs && adduser -S nextjs -G nodejs
 
 COPY --from=build /app/public ./public

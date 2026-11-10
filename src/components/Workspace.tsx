@@ -17,14 +17,13 @@ import {
 import { AthurudayaAgent } from "@/components/AthurudayaAgent";
 import { NameStudio } from "@/components/NameStudio";
 import { NakathFinder } from "@/components/NakathFinder";
-import { PrintControls } from "@/components/PrintControls";
+import { PdfPanel } from "@/components/PdfPanel";
 import {
   PlaceFields,
   emptyPlaceForm,
   placePayload,
   type PlaceFormValue,
 } from "@/components/PlaceFields";
-import { runPrint, type PrintMode, type PrintPaper } from "@/lib/print-modes";
 import { apiUrl } from "@/lib/base-path";
 
 type Tab =
@@ -143,8 +142,6 @@ export function Workspace() {
   > | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [printMode, setPrintMode] = useState<PrintMode>("single");
-  const [printPaper, setPrintPaper] = useState<PrintPaper>("A4");
 
   const chart = castData?.chart as Record<string, unknown> | undefined;
   const dosha = castData?.dosha as Record<string, unknown> | undefined;
@@ -276,12 +273,6 @@ export function Workspace() {
         setError(e instanceof Error ? e.message : t(lang, "error"));
       }
     });
-  }
-
-  function downloadJson() {
-    if (!gate() || !castData?.horoscopeId) return;
-    track("chart_exported", { mode: "json" });
-    window.location.assign(apiUrl(`/api/horoscopes/${encodeURIComponent(String(castData.horoscopeId))}?download=1`));
   }
 
   return (
@@ -542,13 +533,7 @@ export function Workspace() {
 
           {tab === "chart" && satahana ? (
             <div className="stack satahana-host">
-              <PrintControls
-                lang={lang}
-                mode={printMode}
-                paper={printPaper}
-                onModeChange={setPrintMode}
-                onPaperChange={setPrintPaper}
-              />
+              <PdfPanel lang={lang} horoscopeId={castData?.horoscopeId ? String(castData.horoscopeId) : undefined} />
               <KendrayaSatahana data={satahana} />
             </div>
           ) : null}
@@ -903,57 +888,7 @@ export function Workspace() {
 
           {tab === "export" ? (
             <div className="stack">
-              <PrintControls
-                lang={lang}
-                mode={printMode}
-                paper={printPaper}
-                onModeChange={setPrintMode}
-                onPaperChange={setPrintPaper}
-                disabled={!satahana}
-              />
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => {
-                  if (!satahana) return;
-                  setTab("chart");
-                  window.setTimeout(() => runPrint(printMode, printPaper), 250);
-                }}
-                disabled={!satahana}
-              >
-                {lang === "si"
-                  ? "කේන්ද්‍ර ටැබය විවෘත කර මුද්‍රණය"
-                  : "Open chart tab & print"}
-              </button>
-              <button
-                type="button"
-                className="ghost"
-                onClick={downloadJson}
-                disabled={!castData}
-              >
-                {t(lang, "json")}
-              </button>
-              {satahana ? (
-                <p className="muted">
-                  {lang === "si"
-                    ? "එක් පිටුව / බහු-පිටු / පොත් / චාර්ට් පමණි — A4 සඳහා සැකසූ මුද්‍රණ ආකාර."
-                    : "Single page, multi-page, print book, or charts-only — A4-tuned layouts."}
-                </p>
-              ) : null}
-              {castData ? (
-                <pre className="json-block">
-                  {JSON.stringify(
-                    {
-                      native: chart?.native,
-                      lagna: chart?.lagna,
-                      chandra: chart?.chandra,
-                      namThebima: nam,
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
-              ) : null}
+              <PdfPanel lang={lang} horoscopeId={castData?.horoscopeId ? String(castData.horoscopeId) : undefined} />
             </div>
           ) : null}
           </> : null}

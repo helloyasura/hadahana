@@ -33,7 +33,7 @@ CHROME_PATH=/usr/bin/google-chrome-stable npm run test:ui
 
 `npm test` groups the existing credential-free chart, factor-alignment, feedback, nakath, and naming regression scripts. `tsx` is pinned through the lockfile rather than downloaded ad hoc. The obsolete Next 16 `next lint` command was replaced with ESLint; three pre-existing unused declarations were removed without changing calculations or naming behavior.
 
-`test:ui` uses an isolated headless Chromium context, never a signed-in desktop session. It checks both 1280px and 390px: all nine tabs, real chart casting, seed/fallback naming and selection, compatibility, nakath date scanning, panchanga, JSON download, white charts, print visibility, motion controls, language switching, no horizontal overflow, and no browser errors. It also checks keyboard skip navigation and no-JS content visibility.
+`test:ui` uses an isolated headless Chromium context, never a signed-in desktop session. It checks both 1280px and 390px: all nine tabs, real chart casting, seed/fallback naming and selection, compatibility, nakath date scanning, panchanga, server PDF preview, white charts, print visibility, motion controls, language switching, no horizontal overflow, and no browser errors. It also checks keyboard skip navigation and no-JS content visibility.
 
 Screenshots and the JSON report default to `/workspace/hadahana-redesign-shots/`. Override `UI_BASE_URL`, `UI_SHOTS_DIR`, or `CHROME_PATH` as needed. Key views: `1280-hero-si.png`, `390-hero-si.png`, `1280-names.png`, `390-names.png`, `1280-chart.png`, `390-chart.png`, and the two `*-home-full.png` files.
 

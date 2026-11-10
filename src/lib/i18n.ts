@@ -59,7 +59,6 @@ const dict = {
   print: { en: "Print / PDF", si: "මුද්‍රණය / PDF" },
   printLayout: { en: "Print layout", si: "මුද්‍රණ ආකාරය" },
   printPaper: { en: "Paper size", si: "කඩදාසි ප්‍රමාණය" },
-  json: { en: "Download JSON", si: "JSON බාගන්න" },
   features: { en: "Jyotishiya toolkit", si: "ජ්‍යොතිෂ මෙවලම්" },
   rahu: { en: "Rahu Kalaya", si: "රාහු කාලය" },
   subha: { en: "Subha windows", si: "සුභ වේලා" },
@@ -86,7 +85,7 @@ export const FEATURE_MATRIX: Array<{ id: string; en: string; si: string }> = [
   { id: "panchanga", en: "Daily Panchanga (tithi, yoga, karana…)", si: "දෛනික පංචාංගය" },
   { id: "dosha", en: "Dosha / yoga flags (Kuja, Kalsarpa…)", si: "දෝෂ / යෝග ධජ" },
   { id: "navamsa", en: "Navamsa (D9) overview", si: "නවාංශ (D9) දළ විශ්ලේෂණය" },
-  { id: "export", en: "Printable report + JSON export", si: "මුද්‍රණය + JSON අපනයනය" },
+  { id: "export", en: "View / Download PDF", si: "PDF බලන්න / බාගන්න" },
   {
     id: "places",
     en: "All SL cities, towns, hospitals + manual lat/lon",

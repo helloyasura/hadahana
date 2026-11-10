@@ -19,7 +19,7 @@ Deploy notes: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - Daily Panchanga
 - Dosha / yoga screens (Kuja, Kalsarpa, Gaja Kesari…)
 - Sri Lanka hospital / town presets (incl. Asiri Kandy)
-- Print / JSON export — **A4 layouts**: single page, full multi-page, print book/booklet, charts-only (+ landscape / Letter)
+- Server-rendered PDF preview/download — A4, A5, Letter and Legal, portrait or landscape. Sign-in and active license required; no JSON export. See docs/SERVER_PDF.md.
 - **Agentic Name Studio** — multi-personality ensemble (~20 names), living-country style, family interests; Kendraya letters mandatory
 
 ## Quick start
