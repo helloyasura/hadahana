@@ -125,7 +125,7 @@ jobs:
           SESSION_SECRET=${SESSION_SECRET}
           EOF
           sed -i 's/^[[:space:]]*//' .env.bootstrap
-          chmod 600 .env.bootstrap
+          # Readable by the scp-action container; locked down to 600 on the droplet.
           test -s .env.bootstrap
 
       - name: Stage deploy bundle + export image
@@ -185,6 +185,7 @@ jobs:
               cat .env.noid .env.imagepin > .env
               rm -f .env.noid .env.imagepin
             fi
+            chmod 600 .env .env.bootstrap 2>/dev/null || true
 
       - name: Load image and up handahana only
         uses: appleboy/ssh-action@v1.2.0
