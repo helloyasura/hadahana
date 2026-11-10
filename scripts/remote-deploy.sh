@@ -129,7 +129,8 @@ rollback() {
 # Preflight volume migration BEFORE Compose can replace the old web container.
 # A one-off run propagates init failures without touching any existing service.
 echo "Checking Handahana data ownership before replacing web…"
-if ! compose run --rm --no-deps --no-build handahana-data-init; then
+# Note: `compose run --no-build` is not supported by the droplet's Docker Compose 2.37; data-init has no build section, and --pull never keeps it on the loaded image.
+if ! compose run --rm --no-deps --pull never handahana-data-init; then
   echo "Data init failed; existing Handahana web container was not replaced."
   exit 1
 fi

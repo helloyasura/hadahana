@@ -71,6 +71,14 @@ for scenario in ('success', 'init-fail', 'up-fail', 'health-fail', 'no-previous'
             assert 'HANDAHANA_IMAGE=sha256:old' in (d/'.env').read_text()
             assert 'HANDAHANA_IMAGE=sha256:old' in (d/'.env.images').read_text()
         for call in state['calls']:
+            if call[0] == 'compose' and 'run' in call:
+                # The droplet uses Compose 2.37.1. Keep deploy-run flags in
+                # this known-supported subset: newer CI Compose accepts flags
+                # (notably --no-build) which 2.37.1 rejects before init starts.
+                run_args = call[call.index('run') + 1:-1]
+                supported_flags = {'--rm', '--no-deps', '--pull'}
+                assert all(arg in supported_flags for arg in run_args if arg.startswith('-')), run_args
+                assert '--pull' in run_args and run_args[run_args.index('--pull') + 1] == 'never', run_args
             if call[0] == 'compose' and 'up' in call:
                 assert '--no-deps' in call and call[-1] == 'handahana-web'
             assert not any(x in call for x in ('down', 'rm', 'prune'))
