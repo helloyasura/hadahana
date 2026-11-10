@@ -1224,7 +1224,7 @@ td {
     display: none !important;
   }
 
-  /* Auto-fit scale applied by runPrint() via --print-scale */
+  /* Legacy browser-print fallback scale (server PDFs use their own template) */
   html[data-print-mode="single"] .satahana-host,
   html[data-print-mode="charts"] .satahana-host {
     zoom: var(--print-scale, 1);
@@ -1810,3 +1810,20 @@ td {
     flex-direction: column;
   }
 }
+
+/* Server-typeset PDF archive: controls wrap without clipping Sinhala labels. */
+.pdf-panel {padding:clamp(16px,3vw,28px);border:1px solid #5de4ef55;border-radius:18px;background:linear-gradient(130deg,#132139,#171b38);min-width:0;}
+.pdf-panel h2 {line-height:1.8;}
+.pdf-actions {display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+.pdf-actions label {display:grid;gap:8px;line-height:1.8;min-width:130px;flex:1;}
+.pdf-actions select {width:100%;padding:12px;min-height:48px;}
+.pdf-actions button,.pdf-download {padding:12px 18px;line-height:1.8;min-height:48px;white-space:normal;}
+.pdf-download {display:inline-block;border:1px solid #c7ae6c;border-radius:12px;color:#f4d999;}
+.pdf-preview {display:block;width:100%;height:680px;background:#e8edf1;border:1px solid #7d9aad;border-radius:12px;}
+@media(max-width:600px) {.pdf-actions {flex-direction:column;align-items:stretch;}.pdf-preview {height:460px;}}
+.pdf-panel {color:#e6edf9;}
+.pdf-panel h2 {color:#f3eadb;}
+.pdf-panel .muted,.pdf-panel [role="status"] {color:#c0cce2;}
+.pdf-panel label {color:#d4daec;}
+.pdf-panel select {color:#e6edf9;background:#0d1427;border:1px solid #6e819d;}
+.pdf-panel a:not(.pdf-download) {color:#94e9f1;}

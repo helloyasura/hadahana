@@ -14,7 +14,7 @@ const fixture = spawn(process.execPath, ['scripts/profile-fixture.mjs'], { env: 
 const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--turbopack', '-p', String(port)], { env, stdio: 'inherit' });
 let browser;
 const protectedRoutes = ['/api/nam', '/api/panchanga', '/api/muhurta', '/api/porondam', '/api/satahana', '/api/names/suggest', '/api/names/feedback', '/api/names/reshuffle', '/api/agent/chat', '/api/nakath/suitable'];
-const getRoutes = ['/api/names/meta', '/api/names/feedback', '/api/nakath/suitable', '/api/nakath/events', '/api/access', '/api/horoscopes/not-mine?download=1'];
+const getRoutes = ['/api/names/meta', '/api/names/feedback', '/api/nakath/suitable', '/api/nakath/events', '/api/access', '/api/horoscopes/not-mine/pdf'];
 async function checkBlocked(request, status) {
   for (const path of protectedRoutes) assert.equal((await request.post(root + path, { headers: { 'X-Hadahana-Action': '1' }, data: {} })).status(), status, path);
   for (const path of getRoutes) assert.equal((await request.get(root + path)).status(), status, path);
@@ -50,7 +50,7 @@ try {
     assert(!session.value.includes('example.test'));
     assert.equal((await context.request.get(root + '/api/access')).status(), 200);
     assert.equal((await context.request.get(root + '/api/horoscopes/not-mine')).status(), 404);
-    const download = await context.request.get(root + `/api/horoscopes/${account.profile.horoscopes[0].id}?download=1`);
+    const download = await context.request.get(root + `/api/horoscopes/${account.profile.horoscopes[0].id}/pdf?download=1`);
     assert.equal(download.status(), 200); assert(download.headers()['content-disposition'].includes('attachment'));
     await page.screenshot({ path: `${shots}/active-studio-${width}.png`, fullPage: true });
     await page.goto(root + '/profile'); await page.addStyleTag({ content: 'nextjs-portal {display:none !important;}' }); await page.getByText('Free trial active').waitFor();

@@ -34,6 +34,11 @@ services:
       NAME_FEEDBACK_DB_PATH: /var/lib/handahana/name-feedback.json
     volumes:
       - handahana_data:/var/lib/handahana
+    # Protect the other apps on the shared 2 GiB droplet. Benchmark before rollout.
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 0.50
+    pids_limit: 128
     network_mode: host
     healthcheck:
       test:

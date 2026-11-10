@@ -122,9 +122,9 @@ try {
     assert.ok(await page.locator(".agent-compose textarea").isVisible());
     await capture("agent", ".agent-panel");
     await tab("Export").click();
-    const download = page.waitForEvent("download");
-    await page.getByRole("button", { name: /JSON/ }).click();
-    assert.match((await download).suggestedFilename(), /^handahana-.*\.json$/);
+    assert.equal(await page.getByRole("button", { name: /JSON/ }).count(), 0);
+    await page.getByRole("button", { name: "View PDF", exact: true }).click();
+    await page.locator(".pdf-preview").waitFor();
     await capture("export", ".results");
     await tab("Kendraya").click();
     await page.emulateMedia({ media: "print" });

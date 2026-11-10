@@ -28,3 +28,47 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: /hadahana
           NEXT_TELEMETRY_DISABLED: "1"
         run: npm run build
+
+  pdf-image:
+    name: Docker image / Sinhala PDF smoke
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Build baseline and PDF images (no publishing or deployment)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git worktree add /tmp/hadahana-pdf-base "$BASE_SHA"
+          docker build --build-arg NEXT_PUBLIC_BASE_PATH=/hadahana -t hadahana:pdf-base /tmp/hadahana-pdf-base
+          docker build --build-arg NEXT_PUBLIC_BASE_PATH=/hadahana -t hadahana:pdf-pr .
+          before=$(docker image inspect hadahana:pdf-base --format '{{.Size}}')
+          after=$(docker image inspect hadahana:pdf-pr --format '{{.Size}}')
+          echo "### Server PDF image budget" >> "$GITHUB_STEP_SUMMARY"
+          echo "Baseline image: $before bytes; PDF image: $after bytes; delta: $((after-before)) bytes (uncompressed local image sizes)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Offline PDF smoke under container resource caps
+        run: |
+          timeout 60s docker run --rm --network=none --memory=768m --memory-swap=768m --cpus=0.5 --pids-limit=128 --entrypoint node hadahana:pdf-pr -e '
+            const assert = require("node:assert/strict");
+            const { execFileSync } = require("node:child_process");
+            const { chromium } = require("playwright-core");
+            (async () => {
+              const font = execFileSync("fc-match", ["-f", "%{family}", "Noto Sans Sinhala"]).toString();
+              assert.match(font, /Noto Sans Sinhala/);
+              const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH,timeout:15000,args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--renderer-process-limit=1","--js-flags=--max-old-space-size=128"]});
+              try {
+                const context = await browser.newContext({javaScriptEnabled:false,offline:true});
+                await context.route("**/*", r => r.abort());
+                const page = await context.newPage();
+                await page.setContent("<style>@page{size:A5}body{font-family:Noto Sans Sinhala}</style><h1>ශ්‍රී චන්ද්‍ර ප්‍රඥා</h1>");
+                await page.evaluate(() => document.fonts.ready);
+                const pdf = await page.pdf({preferCSSPageSize:true});
+                assert.equal(pdf.subarray(0,5).toString(), "%PDF-");
+                console.log("Non-root, offline, capped Chromium/Sinhala PDF passed:", pdf.length, "bytes");
+              } finally { await browser.close(); }
+            })().catch(error => {console.error(error);process.exitCode=1;});'

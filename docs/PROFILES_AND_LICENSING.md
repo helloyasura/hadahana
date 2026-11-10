@@ -3,7 +3,7 @@
 ## Product interpretation
 
 Visitors may generate a **limited preview** without an account. Everything beyond
-that preview (full printable chart, JSON download, PDF/browser print, naming,
+that preview (full printable chart, server PDF preview/download, naming,
 compatibility, predictions, dosha, auspicious times, panchanga and AI assistant)
 requires both sign-in and a live LUMS trial/license. Tools are locked before the
 first horoscope is generated. An existing saved horoscope can be reopened instead.
@@ -63,7 +63,7 @@ limited and contains no complete printable chart.
 4. Merge this Hadahana PR. CD refreshes only these new profile settings and the
    image pin in the existing Hadahana `.env`, keeping its OpenAI settings intact.
 5. Test a new account, same credentials in LUMS `/portal`, profile persistence,
-   full JSON/print and one paid renewal in an approved test environment. Do not
+   server PDF and one paid renewal in an approved test environment. Do not
    expire or otherwise change a live customer license just to test.
 
 No changes to nginx, other compose projects, GitHub secrets or the live droplet
