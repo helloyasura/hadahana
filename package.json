@@ -16,7 +16,8 @@
     "test": "tsx scripts/verify-asiri.mts && tsx scripts/verify-factor-align.mts && tsx scripts/verify-feedback.mts && tsx scripts/verify-nakath-finder.mts && tsx scripts/verify-names.mts && tsx --test scripts/verify-analytics.mts",
     "test:ui": "node scripts/ui-redesign.mjs",
     "test:account": "tsx scripts/verify-account.mts",
-    "test:profile": "node scripts/verify-profile-flow.mjs"
+    "test:profile": "node scripts/verify-profile-flow.mjs",
+    "icons:generate": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.3.5",
