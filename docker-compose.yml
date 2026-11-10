@@ -25,7 +25,9 @@ services:
     read_only: true
     cap_drop: [ALL]
     cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
-    security_opt: [no-new-privileges:true]
+    # Do not set no-new-privileges here: Snap Docker/AppArmor denies the
+    # snap.docker.dockerd -> docker-default exec transition with NNP enabled.
+    # Keep the default AppArmor/seccomp profiles and the minimal capability set.
     mem_limit: 32m
     pids_limit: 16
     restart: "no"

@@ -34,12 +34,24 @@ if [[ -z "${HANDAHANA_IMAGE:-}" ]]; then
   exit 1
 fi
 
-{
-  echo "HANDAHANA_IMAGE=${HANDAHANA_IMAGE}"
-  echo "NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH:-/hadahana}"
-  echo "HANDAHANA_BIND_ADDRESS=${HANDAHANA_BIND_ADDRESS:-127.0.0.1}"
-  echo "HANDAHANA_PORT=${HANDAHANA_PORT:-4132}"
-} > .env.images
+write_image_pin() {
+  {
+    echo "HANDAHANA_IMAGE=${HANDAHANA_IMAGE}"
+    echo "NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH:-/hadahana}"
+    echo "HANDAHANA_BIND_ADDRESS=${HANDAHANA_BIND_ADDRESS:-127.0.0.1}"
+    echo "HANDAHANA_PORT=${HANDAHANA_PORT:-4132}"
+  } > .env.images.tmp
+  chmod 600 .env.images.tmp
+  mv .env.images.tmp .env.images
+}
+write_image_pin
+
+persist_image_pin() {
+  # Keep normal `docker compose up` consistent with a successful rollback too.
+  awk -v image="$HANDAHANA_IMAGE" '!/^HANDAHANA_IMAGE=/ {print} END {print "HANDAHANA_IMAGE=" image}' .env > .env.tmp
+  chmod 600 .env.tmp
+  mv .env.tmp .env
+}
 
 compose() {
   docker compose \
@@ -64,29 +76,82 @@ else
   echo "No archive and no GHCR login — assuming image already present: $HANDAHANA_IMAGE"
 fi
 
-echo "Starting compose project ${COMPOSE_PROJECT_NAME} only…"
-compose up -d --no-build --remove-orphans
+# Capture the actual old image, not the .env pin (CD has already updated it).
+# Never treat a Created/exited/unhealthy container as a known-good rollback.
+previous_image=""
+old_id="$(compose ps -a -q handahana-web)"
+if [[ -n "$old_id" ]] && [[ "$(docker inspect --format '{{.State.Status}}' "$old_id")" == running ]] \
+  && [[ "$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$old_id")" == healthy ]]; then
+  previous_image="$(docker inspect --format '{{.Image}}' "$old_id")"
+  printf '%s\n' "$previous_image" > .last-good-image.tmp
+  chmod 600 .last-good-image.tmp
+  mv .last-good-image.tmp .last-good-image
+elif [[ -s .last-good-image ]]; then
+  previous_image="$(<.last-good-image)"
+fi
 
-echo "Waiting for Handahana health on loopback :${HANDAHANA_PORT:-4132}…"
-base="${NEXT_PUBLIC_BASE_PATH:-/hadahana}"
-ok=0
-for _ in $(seq 1 45); do
-  # Prefer /hadahana (no trailing slash); Next may 308 /hadahana/ → /hadahana
-  if curl -fsS -L "http://127.0.0.1:${HANDAHANA_PORT:-4132}${base}" >/dev/null 2>&1 \
-    || curl -fsS -L "http://127.0.0.1:${HANDAHANA_PORT:-4132}${base}/" >/dev/null 2>&1; then
-    ok=1
-    break
-  fi
-  sleep 2
-done
+wait_healthy() {
+  local id state
+  id="$(compose ps -a -q handahana-web)"
+  [[ -n "$id" ]] || return 1
+  for _ in $(seq 1 95); do
+    state="$(docker inspect --format '{{.State.Status}}/{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$id")"
+    case "$state" in
+      running/healthy) return 0 ;;
+      exited/*|dead/*|running/unhealthy) return 1 ;;
+    esac
+    sleep 2
+  done
+  return 1
+}
 
-if [[ "$ok" -ne 1 ]]; then
-  echo "Handahana did not become healthy in time."
+rollback() {
+  echo "New Handahana image failed to start healthy."
   compose ps || true
-  compose logs --tail=80 || true
+  # No env dumps or application logs: these may contain private birth data.
+  if [[ -z "$previous_image" ]]; then
+    echo "No known-good previous image recorded; automatic rollback unavailable."
+    return 1
+  fi
+  echo "Restoring the previous known-good Handahana image."
+  export HANDAHANA_IMAGE="$previous_image"
+  write_image_pin
+  persist_image_pin
+  # Ownership init has already passed; do not let an init dependency block recovery.
+  if compose up -d --no-build --no-deps handahana-web && wait_healthy; then
+    echo "Previous Handahana image restored and healthy. Deployment still fails."
+  else
+    echo "CRITICAL: previous Handahana image could not be restored healthy."
+  fi
+  return 1
+}
+
+# Preflight volume migration BEFORE Compose can replace the old web container.
+# A one-off run propagates init failures without touching any existing service.
+echo "Checking Handahana data ownership before replacing web…"
+if ! compose run --rm --no-deps --no-build handahana-data-init; then
+  echo "Data init failed; existing Handahana web container was not replaced."
   exit 1
 fi
 
-echo "Handahana is up at http://127.0.0.1:${HANDAHANA_PORT:-4132}${base}"
-echo "Point host nginx location ${base}/ at this port (see deploy/nginx-hadahana.conf.example)."
+echo "Starting compose project ${COMPOSE_PROJECT_NAME} web only…"
+if ! compose up -d --no-build --no-deps handahana-web; then
+  rollback || true
+  exit 1
+fi
+if ! wait_healthy; then
+  rollback || true
+  exit 1
+fi
+
+# Persist only after confirmed health.
+persist_image_pin
+
+# Immutable local image ID survives mutable tags / later failed deployments.
+new_id="$(compose ps -a -q handahana-web)"
+docker inspect --format '{{.Image}}' "$new_id" > .last-good-image.tmp
+chmod 600 .last-good-image.tmp
+mv .last-good-image.tmp .last-good-image
+
+echo "Handahana is healthy at http://127.0.0.1:${HANDAHANA_PORT:-4132}${NEXT_PUBLIC_BASE_PATH:-/hadahana}"
 compose ps

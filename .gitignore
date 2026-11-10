@@ -52,3 +52,6 @@ tsconfig.tsbuildinfo
 
 # Private Pro store (never commit personal data)
 /data/jyotisha-pro.enc*
+
+# Deployment-only local known-good image checkpoint
+.last-good-image*
