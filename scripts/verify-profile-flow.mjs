@@ -14,7 +14,7 @@ const fixture = spawn(process.execPath, ['scripts/profile-fixture.mjs'], { env: 
 const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--turbopack', '-p', String(port)], { env, stdio: 'inherit' });
 let browser;
 const protectedRoutes = ['/api/nam', '/api/panchanga', '/api/muhurta', '/api/porondam', '/api/satahana', '/api/names/suggest', '/api/names/feedback', '/api/names/reshuffle', '/api/agent/chat', '/api/nakath/suitable'];
-const getRoutes = ['/api/names/meta', '/api/names/feedback', '/api/nakath/suitable', '/api/nakath/events', '/api/access', '/api/horoscopes/not-mine/pdf'];
+const getRoutes = ['/api/names/meta', '/api/names/feedback', '/api/nakath/suitable', '/api/nakath/events', '/api/access', '/api/horoscopes/not-mine/pdf', '/api/horoscopes/not-mine/periods'];
 async function checkBlocked(request, status) {
   for (const path of protectedRoutes) assert.equal((await request.post(root + path, { headers: { 'X-Hadahana-Action': '1' }, data: {} })).status(), status, path);
   for (const path of getRoutes) assert.equal((await request.get(root + path)).status(), status, path);

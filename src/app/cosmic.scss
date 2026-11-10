@@ -109,7 +109,11 @@ $surface: rgba(17, 21, 41, 0.86);
     border: 1px solid $cyan;
     border-radius: 10px;
     transform: translateY(-180%);
-    &:focus {
+    clip-path: inset(50%);
+    pointer-events: none;
+    &:focus-visible {
+      clip-path: none;
+      pointer-events: auto;
       transform: none;
     }
   }
@@ -1177,3 +1181,9 @@ $surface: rgba(17, 21, 41, 0.86);
   .verification-code { font: 600 1.6rem/1.9 var(--font-body), "Noto Sans Sinhala", sans-serif; letter-spacing: .25em; text-align: center; padding: .5rem; }
   .verification-orbit { font-size: 2.5rem; line-height: 1; color: #a4f6dd; }
 }
+
+.prediction-options {display:flex; flex-wrap:wrap; gap:.75rem; button {white-space:normal; &[aria-pressed="true"] {border-color:#9be8df; color:#9be8df;}}}
+.period-report {min-width:0; small {display:block;font-size:.85rem;font-weight:400;color:#b5bdd4;} select {max-width:100%;} }
+.period-list {display:grid;gap:1rem;}
+.period-card {border:1px solid #49516d;border-radius:16px;padding:clamp(1rem,3vw,1.6rem);overflow-wrap:anywhere;line-height:1.8; &[data-current="true"] {border-color:#9be8df; background:rgba(111,212,200,.06);} header {display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;} h4 {margin:0;} summary {cursor:pointer;color:#9be8df;} li {margin-block:.5rem;} }
+.period-note {padding:1rem;border-left:3px solid #9be8df;background:rgba(111,212,200,.06);}
