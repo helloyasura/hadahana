@@ -14,8 +14,6 @@
   --mist: rgba(255, 255, 255, 0.55);
   --line: rgba(20, 34, 28, 0.12);
   --danger: #8b2e2e;
-  --font-display: var(--font-display), "Noto Serif Sinhala", serif;
-  --font-body: var(--font-body), "Noto Sans Sinhala", sans-serif;
 }
 
 * {

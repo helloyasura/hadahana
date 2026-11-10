@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Noto_Sans_Sinhala } from "next/font/google";
+import { Space_Grotesk, Noto_Sans_Sinhala } from "next/font/google";
 import "./globals.css";
+import "./cosmic.scss";
 
-const display = Cormorant_Garamond({
+const display = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  display: "swap",
 });
 
 const body = Noto_Sans_Sinhala({
   variable: "--font-body",
   subsets: ["sinhala", "latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

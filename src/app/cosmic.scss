@@ -1,0 +1,1128 @@
+// The atlas skin is screen-only: traditional horoscope/PDF styling stays intact.
+$cyan: #8be7ef;
+$violet: #b4a0ff;
+$gold: #edcc91;
+$line: rgba(179, 185, 233, 0.17);
+$surface: rgba(17, 21, 41, 0.86);
+
+@mixin glass($radius: 24px) {
+  border: 1px solid $line;
+  border-radius: $radius;
+  background: linear-gradient(125deg, rgba(34, 36, 64, 0.75), $surface 65%);
+  box-shadow:
+    0 18px 70px rgba(0, 0, 0, 0.15),
+    inset 0 1px rgba(255, 255, 255, 0.035);
+}
+@mixin focus-ring {
+  outline: 2px solid $cyan;
+  outline-offset: 4px;
+}
+
+@media screen {
+  :root {
+    color-scheme: dark;
+    --ink: #f0effb;
+    --ink-soft: #b7b9d0;
+    --paper: #0b0e1d;
+    --paper-2: #15192e;
+    --leaf: #8be7ef;
+    --leaf-deep: #f1edff;
+    --gold: #edcc91;
+    --gold-soft: #edcc91;
+    --line: #{$line};
+    --danger: #ffaaa9;
+    --accent: #cfb3ff;
+  }
+  html {
+    background: #090c19;
+    scroll-behavior: smooth;
+    scroll-padding-top: 28px;
+  }
+  body {
+    background: #090c19;
+    background-image:
+      radial-gradient(
+        ellipse at 80% 8%,
+        rgba(83, 58, 138, 0.18),
+        transparent 42%
+      ),
+      radial-gradient(
+        ellipse at 5% 48%,
+        rgba(33, 99, 121, 0.09),
+        transparent 35%
+      );
+    font-family: var(--font-body), sans-serif;
+    line-height: 1.65;
+  }
+  ::selection {
+    background: #6853a0;
+    color: white;
+  }
+  :focus-visible {
+    @include focus-ring;
+  }
+  a {
+    color: inherit;
+  }
+  button,
+  input,
+  select,
+  textarea,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    touch-action: manipulation;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  .workspace {
+    position: relative;
+    isolation: isolate;
+    max-width: 1240px;
+    padding: 0 40px 32px;
+  }
+  .starfield {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image:
+      radial-gradient(1px 1px at 20px 30px, #b8d4f5 90%, transparent),
+      radial-gradient(1px 1px at 90px 110px, #c6b2ff 90%, transparent),
+      radial-gradient(1.5px 1.5px at 200px 60px, #ffe6af 90%, transparent);
+    background-size:
+      270px 230px,
+      340px 310px,
+      480px 370px;
+    animation: star-breathe 7s ease-in-out infinite alternate;
+  }
+  .skip-link {
+    position: fixed;
+    z-index: 20;
+    top: 12px;
+    left: 12px;
+    padding: 12px 20px;
+    background: #151b35;
+    border: 1px solid $cyan;
+    border-radius: 10px;
+    transform: translateY(-180%);
+    &:focus {
+      transform: none;
+    }
+  }
+  .studio-nav {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    padding: 26px 0;
+    border-bottom: 1px solid $line;
+  }
+  .studio-wordmark {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.17em;
+    line-height: 1.3;
+    small {
+      display: block;
+      font-family: var(--font-body), sans-serif;
+      letter-spacing: 0.12em;
+      font-size: 9px;
+      color: var(--ink-soft);
+      margin-top: 5px;
+    }
+  }
+  .cosmic-mark {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    color: $gold;
+    stroke: currentColor;
+    stroke-width: 1.2;
+  }
+  .studio-nav-link {
+    margin-left: auto;
+    font-size: 12px;
+    text-decoration: none;
+    color: #d2d2e7;
+    transition: color 0.2s;
+    &:hover {
+      color: $cyan;
+    }
+  }
+  .motion-toggle {
+    font: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border: 1px solid $line;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.025);
+    &:hover {
+      border-color: $violet;
+      color: white;
+    }
+  }
+  .hero {
+    overflow: hidden;
+    min-height: 610px;
+    margin: 0 0 28px;
+    padding: 68px 0 64px;
+    align-items: center;
+    background: none;
+    animation: none;
+    color: var(--ink);
+  }
+  .hero-inner {
+    max-width: 55%;
+    z-index: 2;
+  }
+  .eyebrow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: $gold;
+    margin: 0 0 30px;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    background: $cyan;
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba($cyan, 0.6);
+  }
+  .lang-switch {
+    border-radius: 999px;
+    padding: 3px;
+    border-color: $line;
+    background: rgba(23, 28, 48, 0.85);
+    margin-bottom: 16px;
+    button {
+      font-size: 11px;
+      border-radius: 999px;
+      min-height: 32px;
+      padding: 6px 16px;
+      transition:
+        background 0.25s,
+        color 0.25s;
+      &.active {
+        color: #17182a;
+        background: $gold;
+      }
+    }
+  }
+  .brand {
+    font-family: var(--font-display), var(--font-body), sans-serif;
+    font-size: clamp(2.8rem, 5.5vw, 4.3rem);
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.055em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+    text-shadow: 0 2px 40px rgba($violet, 0.12);
+    animation: cosmic-rise 0.8s both;
+  }
+  .tagline {
+    max-width: 470px;
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    animation: cosmic-rise 0.8s 0.1s both;
+  }
+  .hero-cta {
+    gap: 12px;
+    animation: cosmic-rise 0.8s 0.2s both;
+  }
+  button.primary,
+  button.ghost {
+    min-height: 46px;
+    font-size: 12px;
+    padding: 12px 21px;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    transition:
+      transform 0.25s,
+      box-shadow 0.25s,
+      background 0.25s;
+  }
+  button.primary {
+    color: #171b2a;
+    background: linear-gradient(115deg, #f5dbab, #e6bd7c);
+    border: 1px solid #f5dbaa;
+    box-shadow: 0 5px 24px rgba($gold, 0.1);
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        110deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.5),
+        transparent 65%
+      );
+      transform: translateX(-130%);
+      transition: transform 0.6s;
+    }
+    &:hover:not(:disabled) {
+      background: #f5dbaa;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba($gold, 0.2);
+      &::after {
+        transform: translateX(130%);
+      }
+    }
+  }
+  button.ghost {
+    border-color: rgba($violet, 0.3);
+    background: rgba(119, 99, 178, 0.08);
+    color: #e3dcff;
+    &:hover:not(:disabled) {
+      border-color: $violet;
+      background: rgba($violet, 0.1);
+      transform: translateY(-3px);
+    }
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.97) !important;
+  }
+  .hero-visual {
+    inset: auto -6px auto auto;
+    top: 2%;
+    width: 46%;
+    aspect-ratio: 1;
+    background: none;
+    animation: cosmic-rise 1.2s 0.15s both;
+  }
+  .astral-wheel {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    transition: transform 0.8s;
+  }
+  .atlas-ticks {
+    stroke: rgba($gold, 0.38);
+    stroke-width: 0.8;
+  }
+  .zodiac-ring {
+    stroke: rgba($gold, 0.27);
+    stroke-width: 0.65;
+    transform-origin: 300px 300px;
+    animation: atlas-turn 240s linear infinite;
+    text {
+      fill: #ddc7a7;
+      stroke: none;
+      font-size: 20px;
+      font-family: serif;
+    }
+  }
+  .constellation-draw {
+    color: $cyan;
+    stroke: currentColor;
+    stroke-width: 0.7;
+    opacity: 0.3;
+    path {
+      stroke-dasharray: 1500;
+      stroke-dashoffset: 1500;
+      animation: constellation-trace 3.5s 0.3s ease forwards;
+    }
+  }
+  .planet-orbits {
+    stroke: rgba($violet, 0.22);
+    stroke-width: 0.7;
+  }
+  .planet {
+    transform-origin: 300px 300px;
+  }
+  @for $i from 0 through 8 {
+    .planet-#{$i} {
+      transform: rotate(#{$i * 40}deg);
+      animation: planet-turn-#{$i} #{35 + $i * 9}s linear infinite;
+    }
+    @keyframes planet-turn-#{$i} {
+      from {
+        transform: rotate(#{$i * 40}deg);
+      }
+      to {
+        transform: rotate(#{360 + $i * 40}deg);
+      }
+    }
+  }
+  .atlas-moon {
+    transform-origin: center;
+    animation: moon-float 7s ease-in-out infinite;
+  }
+  .atlas-crosshair {
+    stroke: rgba($cyan, 0.55);
+    stroke-width: 1;
+  }
+  .orbit-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font:
+      9px var(--font-display),
+      sans-serif;
+    color: #a6a1bd;
+    letter-spacing: 0.18em;
+  }
+  .orbit-label-top {
+    top: 0;
+  }
+  .orbit-label-bottom {
+    bottom: 1%;
+    color: $gold;
+  }
+  .hero-baseline {
+    position: absolute;
+    bottom: 0;
+    inset-inline: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    color: #9699b4;
+    border-top: 1px solid $line;
+    font:
+      9px var(--font-display),
+      sans-serif;
+    letter-spacing: 0.16em;
+    span:nth-child(2) {
+      color: $gold;
+      font-size: 18px;
+    }
+  }
+  .panel,
+  .features,
+  .results {
+    @include glass;
+    padding: 28px 30px;
+    margin-bottom: 24px;
+    backdrop-filter: none;
+  }
+  .birth-panel {
+    position: relative;
+    border-top-color: rgba($violet, 0.4);
+    &::before {
+      content: "";
+      position: absolute;
+      height: 1px;
+      top: -1px;
+      left: 12%;
+      right: 12%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        $violet,
+        $cyan,
+        transparent
+      );
+    }
+  }
+  .section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    .cosmic-mark {
+      width: 34px;
+      opacity: 0.6;
+    }
+    h2 {
+      margin: 8px 0 0;
+      font-family: var(--font-body), sans-serif;
+      font-size: 20px;
+      font-weight: 500;
+    }
+  }
+  .section-index {
+    font:
+      9px var(--font-display),
+      sans-serif;
+    color: $violet;
+    letter-spacing: 0.17em;
+  }
+  .section-symbol {
+    color: $gold;
+    font-size: 32px;
+  }
+  .grid-form {
+    grid-template-columns: 1.2fr 1fr 1fr 1fr;
+    gap: 16px;
+  }
+  label,
+  .name-studio-grid label,
+  .name-studio > label {
+    gap: 8px;
+    font-size: 12px;
+    color: #c6c7dc;
+    min-width: 0;
+  }
+  input,
+  select,
+  textarea,
+  .name-studio input,
+  .name-studio select,
+  .print-controls select,
+  .agent-compose textarea {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 45px;
+    border: 1px solid $line;
+    border-radius: 10px;
+    background: #0d1124;
+    color: var(--ink);
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 13px;
+    transition:
+      border-color 0.25s,
+      box-shadow 0.25s,
+      background 0.25s;
+    &:hover {
+      border-color: rgba($violet, 0.4);
+    }
+    &:focus {
+      outline: none;
+      border-color: $cyan;
+      background: #10162c;
+      box-shadow: 0 0 0 3px rgba($cyan, 0.12);
+    }
+  }
+  input[type="checkbox"] {
+    min-height: 18px;
+    accent-color: $cyan;
+    width: 18px;
+    height: 18px;
+  }
+  input[type="date"],
+  input[type="time"] {
+    width: 100%;
+  }
+  option {
+    color: #f0effb;
+    background: #11162a;
+  }
+  .birth-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+    > span {
+      color: $gold;
+      font-size: 24px;
+    }
+  }
+  .place-fields {
+    margin-top: 24px;
+    padding-top: 22px;
+    gap: 16px;
+  }
+  .place-hint {
+    font-size: 11px;
+  }
+  .place-coords {
+    gap: 16px;
+  }
+  .features {
+    background: transparent;
+    box-shadow: none;
+    border-color: transparent;
+    padding: 20px 0 14px;
+    .section-heading {
+      margin-bottom: 20px;
+    }
+    ul {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid $line;
+      border-radius: 12px;
+      background: rgba(22, 26, 47, 0.55);
+      font-size: 11px;
+      line-height: 1.7;
+      transition:
+        border-color 0.3s,
+        background 0.3s,
+        transform 0.3s;
+      &::before {
+        display: none;
+      }
+      &:hover {
+        border-color: rgba($cyan, 0.4);
+        background: rgba(36, 43, 70, 0.65);
+        transform: translateY(-3px);
+      }
+    }
+  }
+  @for $i from 1 through 14 {
+    .features:not(.reveal-pending) li:nth-child(#{$i}) {
+      animation: cosmic-rise 0.5s #{$i * 0.025}s both;
+    }
+  }
+  .feature-index {
+    color: $gold;
+    font:
+      10px var(--font-display),
+      sans-serif;
+    padding-top: 3px;
+    flex-shrink: 0;
+    opacity: 0.8;
+  }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid $line;
+    border-radius: 18px;
+    background: rgba(14, 18, 35, 0.94);
+    margin: 12px 0 18px;
+    button {
+      flex: 1 0 auto;
+      min-height: 44px;
+      border: 1px solid transparent;
+      padding: 10px 13px;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #b8bbd1;
+      background: transparent;
+      transition:
+        color 0.25s,
+        background 0.25s,
+        box-shadow 0.25s;
+      &:hover {
+        background: rgba($violet, 0.08);
+        color: white;
+      }
+      &.active {
+        background: rgba($violet, 0.16);
+        border-color: rgba($violet, 0.35);
+        color: #f0e8ff;
+        box-shadow: inset 0 0 18px rgba($violet, 0.05);
+      }
+    }
+  }
+  .results {
+    min-height: 210px;
+    h3,
+    h4 {
+      color: #e5ddff;
+    }
+  }
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 22px;
+    gap: 10px;
+    .cosmic-mark {
+      width: 50px;
+      height: 50px;
+      opacity: 0.7;
+    }
+    .empty {
+      font-size: 13px;
+      margin: 4px 0;
+    }
+  }
+  .result-reveal {
+    animation: cosmic-rise 0.45s ease both;
+    min-width: 0;
+  }
+  .stack {
+    min-width: 0;
+  }
+  .muted,
+  .plain,
+  .foot {
+    color: var(--ink-soft);
+  }
+  .agent-panel,
+  .agent-thread,
+  .print-controls,
+  .name-manual-letters,
+  .name-card,
+  .name-picked,
+  .nakath-day-card,
+  .nakath-date-row,
+  .nakath-chip-list li {
+    background: rgba(12, 17, 35, 0.8);
+    border-color: $line;
+    border-radius: 14px;
+  }
+  .agent-panel {
+    padding: 24px;
+  }
+  .agent-thread {
+    padding: 20px;
+  }
+  .agent-msg {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba($violet, 0.07);
+    animation: cosmic-rise 0.35s both;
+    &.user {
+      background: rgba($cyan, 0.06);
+    }
+  }
+  .agent-topics button,
+  .chip-row button,
+  .name-source-tabs button,
+  .name-feedback-bar button {
+    border-color: $line;
+    border-radius: 999px;
+    background: #161b33;
+    color: #d0d2e5;
+    min-height: 36px;
+    transition:
+      background 0.2s,
+      border-color 0.2s;
+    &:hover {
+      border-color: rgba($cyan, 0.55);
+    }
+    &.active {
+      background: rgba($violet, 0.2);
+      color: white;
+      border-color: $violet;
+    }
+  }
+  .name-card {
+    padding: 18px;
+    transition:
+      border-color 0.3s,
+      transform 0.3s,
+      box-shadow 0.3s;
+    animation: cosmic-rise 0.45s both;
+    &:hover {
+      border-color: rgba($cyan, 0.45);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    }
+  }
+  @for $i from 1 through 8 {
+    .name-card:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.035}s;
+    }
+  }
+  .name-picked {
+    background: linear-gradient(135deg, rgba($violet, 0.12), rgba($cyan, 0.06));
+    border-color: rgba($violet, 0.3);
+  }
+  .name-card header strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .satahana-host,
+  .score,
+  .nakath-date-row {
+    animation: cosmic-rise 0.45s ease both;
+  }
+  .name-card footer button {
+    border-radius: 8px;
+    min-height: 36px;
+  }
+  .bhava-grid article {
+    @include glass(14px);
+    padding: 18px;
+    border-top: 1px solid rgba($gold, 0.5);
+  }
+  .cosmic-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: $cyan;
+    font-size: 12px;
+    padding-bottom: 20px;
+    span {
+      width: 20px;
+      height: 20px;
+      border: 1px solid rgba($cyan, 0.2);
+      border-top-color: $cyan;
+      border-radius: 50%;
+      animation: atlas-turn 1s linear infinite;
+    }
+  }
+  .json-block {
+    background: #090d1d;
+    color: #c0dae2;
+    border: 1px solid $line;
+    border-radius: 12px;
+  }
+  .error {
+    padding: 12px 16px;
+    border-left: 2px solid var(--danger);
+    background: rgba(255, 130, 150, 0.06);
+    border-radius: 6px;
+  }
+  .foot {
+    margin-top: 36px;
+    font-size: 10px;
+    text-align: center;
+    p {
+      max-width: 700px;
+      margin: 18px auto 0;
+    }
+  }
+  .footer-signature {
+    border-top: 1px solid $line;
+    padding-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #a4a6be;
+    font:
+      9px var(--font-display),
+      sans-serif;
+    letter-spacing: 0.14em;
+    text-align: left;
+    .cosmic-mark {
+      width: 28px;
+      height: 28px;
+    }
+    > span:last-child {
+      margin-left: auto;
+      color: $gold;
+      font-size: 22px;
+    }
+  }
+  // Keep the culturally familiar white-paper chart readable on dark screens.
+  .satahana-host {
+    color-scheme: light;
+    border-radius: 12px;
+    padding: 18px;
+    color: #111;
+    background: white;
+    --ink: #111;
+    --ink-soft: #444;
+    --leaf: #245943;
+    --leaf-deep: #14221c;
+    --line: rgba(0, 0, 0, 0.15);
+    .print-controls {
+      color-scheme: dark;
+      background: #11162a;
+      --ink-soft: #b7b9d0;
+      --ink: #f0effb;
+    }
+    h3,
+    h4 {
+      color: #111;
+    }
+  }
+  .reveal {
+    transition:
+      opacity 0.7s,
+      transform 0.7s;
+  }
+  .reveal-pending {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  [data-motion="paused"] {
+    &,
+    *,
+    *::before,
+    *::after {
+      animation-play-state: paused !important;
+      scroll-behavior: auto !important;
+    }
+    .reveal,
+    .result-reveal,
+    .name-card,
+    .agent-msg,
+    .satahana-host,
+    .score,
+    .nakath-date-row,
+    .features li,
+    .brand,
+    .tagline,
+    .hero-cta,
+    .hero-visual {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+      animation: none !important;
+    }
+    .constellation-draw path {
+      stroke-dashoffset: 0;
+    }
+  }
+}
+
+@keyframes cosmic-rise {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes atlas-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes constellation-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes moon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes star-breathe {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 0.65;
+  }
+}
+
+@media screen and (hover: hover) and (pointer: fine) {
+  .hero:hover .astral-wheel {
+    transform: rotate(-3deg) scale(1.025);
+  }
+  .name-card:hover {
+    transform: translateY(-3px);
+  }
+}
+@media screen and (max-width: 960px) {
+  .workspace {
+    padding-inline: 24px;
+  }
+  .hero {
+    min-height: 570px;
+  }
+  .hero-inner {
+    max-width: 58%;
+  }
+  .hero-visual {
+    width: 48%;
+    right: -15px;
+    top: 8%;
+    opacity: 0.8;
+  }
+  .brand {
+    font-size: 2.8rem;
+  }
+  .grid-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .features ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media screen and (max-width: 640px) {
+  .workspace {
+    padding: 0 18px 24px;
+  }
+  .studio-nav {
+    padding: 18px 0;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .studio-wordmark {
+    font-size: 13px;
+    gap: 8px;
+    .cosmic-mark {
+      width: 32px;
+      height: 32px;
+    }
+    small {
+      font-size: 8px;
+    }
+  }
+  .studio-nav-link {
+    display: none;
+  }
+  .motion-toggle {
+    margin-left: auto;
+    font-size: 9px;
+    padding: 8px 10px;
+  }
+  .hero {
+    min-height: 0;
+    padding: 36px 0 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 22px;
+    overflow: hidden;
+  }
+  .hero-inner {
+    max-width: none;
+  }
+  .eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    margin-bottom: 20px;
+  }
+  .brand {
+    font-size: 2.6rem;
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+  .tagline {
+    font-size: 12px;
+    margin-bottom: 22px;
+  }
+  .hero-cta {
+    gap: 9px;
+    button {
+      font-size: 11px;
+      padding-inline: 14px;
+    }
+  }
+  .hero-visual {
+    position: relative;
+    width: 90%;
+    max-width: 380px;
+    inset: auto;
+    margin: 24px auto 12px;
+    aspect-ratio: 1;
+    opacity: 1;
+  }
+  .orbit-label {
+    font-size: 7px;
+  }
+  .planet:nth-of-type(n + 4) {
+    animation: none;
+  }
+  .hero-baseline {
+    font-size: 7px;
+    letter-spacing: 0.06em;
+    padding: 12px 0;
+  }
+  .panel,
+  .results {
+    padding: 22px 18px;
+    border-radius: 18px;
+  }
+  .section-heading {
+    margin-bottom: 20px;
+    h2 {
+      font-size: 18px;
+    }
+  }
+  .section-index {
+    font-size: 8px;
+  }
+  .grid-form {
+    gap: 14px 10px;
+  }
+  label {
+    font-size: 11px;
+  }
+  input,
+  select,
+  .name-studio input,
+  .name-studio select {
+    font-size: 16px;
+    padding-inline: 9px;
+  }
+  .place-coords {
+    grid-template-columns: 1fr;
+  }
+  .features {
+    padding: 10px 0;
+    ul {
+      gap: 8px;
+    }
+    li {
+      flex-direction: column;
+      gap: 6px;
+      font-size: 10px;
+      padding: 12px;
+    }
+  }
+  .tabs {
+    padding: 7px;
+    gap: 5px;
+    button {
+      flex: 1 0 28%;
+      font-size: 10px;
+      padding: 10px 6px;
+    }
+  }
+  .name-cards {
+    grid-template-columns: 1fr;
+  }
+  .agent-panel {
+    padding: 14px;
+  }
+  .agent-thread {
+    padding: 10px;
+  }
+  .agent-compose textarea {
+    font-size: 16px;
+  }
+  .name-studio-grid {
+    grid-template-columns: 1fr;
+  }
+  .satahana-host {
+    padding: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal-pending {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .constellation-draw path {
+    stroke-dashoffset: 0 !important;
+  }
+}
+@media print {
+  .studio-nav,
+  .starfield,
+  .skip-link {
+    display: none !important;
+  }
+  html,
+  body {
+    color: #111;
+    background: white;
+  }
+  .reveal,
+  .result-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
