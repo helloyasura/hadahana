@@ -1,5 +1,7 @@
 "use client";
 
+import { track } from "@/lib/analytics";
+
 import { useEffect, useMemo, useState, useTransition } from "react";
 import type { Lang } from "@/lib/i18n";
 import {
@@ -167,6 +169,8 @@ export function NameStudio({
     }
     setError(null);
     setPicked(null);
+    track("tool_used", { tool: "nam" });
+    track("name_suggestions_requested");
     startTransition(async () => {
       try {
         const res = await fetch(apiUrl("/api/names/suggest"), {
@@ -199,6 +203,7 @@ export function NameStudio({
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || "failed");
         setNames(json.names as SuggestedName[]);
+        track("name_suggestions_generated", { method: json.source === "seed" ? "fallback" : "ai" });
         setLetters(json.letters);
         setUsedAgents(json.personalitiesUsed ?? []);
         setSource(json.source ?? "");

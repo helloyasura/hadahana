@@ -1,3 +1,5 @@
+import { track } from "./analytics";
+
 /**
  * A4 print layouts for කේන්ද්‍ර සටහන.
  * Modes drive data-print-mode on <html> before window.print().
@@ -118,6 +120,8 @@ export function clearPrintAttributes() {
 }
 
 export function runPrint(mode: PrintMode, paper: PrintPaper = "A4") {
+  track("tool_used", { tool: "export" });
+  track("chart_printed", { mode, paper });
   applyPrintAttributes(mode, paper);
   const cleanup = () => {
     clearPrintAttributes();

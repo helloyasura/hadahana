@@ -1,5 +1,7 @@
 "use client";
 
+import { track } from "@/lib/analytics";
+
 import { useState, useTransition } from "react";
 import type { Lang } from "@/lib/i18n";
 import { apiUrl } from "@/lib/base-path";
@@ -49,6 +51,8 @@ export function AthurudayaAgent({
     setInput("");
     startTransition(async () => {
       try {
+        track("tool_used", { tool: "agent" });
+        track("agent_message_sent");
         const res = await fetch(apiUrl("/api/agent/chat"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },

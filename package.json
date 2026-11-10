@@ -24,6 +24,7 @@
     "langchain": "^1.6.2",
     "next": "^16.4.5",
     "openai": "^7.53.0",
+    "posthog-js": "1.258.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "vpv-panchangam": "^1.0.0",

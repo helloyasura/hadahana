@@ -1,3 +1,4 @@
+import AnalyticsConsent from "@/components/AnalyticsConsent";
 import type { Metadata } from "next";
 import { Space_Grotesk, Noto_Sans_Sinhala } from "next/font/google";
 import "./globals.css";
@@ -31,6 +32,7 @@ export default function RootLayout({
     <html lang="si">
       <body className={`${display.variable} ${body.variable} antialiased`}>
         {children}
+        <AnalyticsConsent />
       </body>
     </html>
   );
