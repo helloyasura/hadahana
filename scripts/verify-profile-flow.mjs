@@ -6,9 +6,9 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
-const port = 4313; const fixturePort = 4314;
+const port = 4333; const fixturePort = 4334;
 const root = `http://127.0.0.1:${port}/hadahana`;
-const shots = process.env.PROFILE_SCREENSHOTS_DIR || '/workspace/hadahana-profile-shots';
+const shots = process.env.PROFILE_SCREENSHOTS_DIR || '/workspace/hadahana-otp-shots';
 const env = { ...process.env, NEXT_PUBLIC_BASE_PATH: '/hadahana', SESSION_SECRET: randomBytes(48).toString('hex'), LUMS_API_URL: `http://127.0.0.1:${fixturePort}/api`, NEXT_PUBLIC_POSTHOG_KEY: '', NEXT_PUBLIC_GA_MEASUREMENT_ID: '' };
 const fixture = spawn(process.execPath, ['scripts/profile-fixture.mjs'], { env: { ...env, PROFILE_FIXTURE_PORT: String(fixturePort) }, stdio: 'inherit' });
 const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--turbopack', '-p', String(port)], { env, stdio: 'inherit' });
@@ -26,7 +26,7 @@ try {
   for (const width of [1280, 390]) {
     const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 } });
     const page = await context.newPage();
-    await page.goto(root); await page.addStyleTag({ content: 'nextjs-portal {display:none !important;}' }); await page.getByRole('button', { name: 'English', exact: true }).click();
+    await page.goto(root); await page.addStyleTag({ content: 'nextjs-portal {display:none !important;}' });
     await checkBlocked(context.request, 401);
     assert.equal(await page.locator('.tabs button:disabled').count(), 8, 'All non-preview features start locked');
     const result = page.waitForResponse(r => r.url().endsWith('/api/cast') && r.request().method() === 'POST');
@@ -35,11 +35,42 @@ try {
     assert(preview.preview && !preview.chart && !preview.satahana && !preview.dosha && !preview.palapala);
     await page.locator('.horoscope-preview').waitFor();
     await page.locator('#account-panel').scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `${shots}/signup-preview-${width}.png`, fullPage: true });
+    await page.locator('#account-panel').screenshot({ path: `${shots}/button-after-${width}.png` });
+    await page.locator('.account-mode').screenshot({ path: `${shots}/button-detail-after-${width}.png` });
     await page.locator('input[name=name]').fill('Celestial Explorer');
     await page.locator('input[name=email]').fill(`explorer${width}@example.test`);
     await page.locator('input[name=password]').fill('Local-test123');
-    await page.getByRole('button', { name: 'Start my 20 free days' }).click();
+    await page.locator('#account-panel button[type=submit]').click();
+    await page.locator('input[name=code]').waitFor();
+    await checkBlocked(context.request, 401);
+    const pendingCookies = await context.cookies();
+    assert(!pendingCookies.some(c => c.name === 'hadahana_session'), 'No session before verification');
+    assert(pendingCookies.some(c => c.name === 'hadahana_pending'), 'Guest horoscope stays pending');
+    const verification = pendingCookies.find(c => c.name === 'hadahana_verification');
+    assert(verification.httpOnly && verification.sameSite === 'Lax');
+    assert(!verification.value.includes('example.test'));
+    assert(await page.locator('.verification-card button').nth(1).isDisabled(), 'Resend cooldown shown');
+    await page.locator('.verification-card').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${shots}/verify-code-${width}.png`, fullPage: false });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false, 'No Sinhala overflow');
+    // Refresh restores the code screen without losing the encrypted guest horoscope.
+    await page.reload();
+    await page.addStyleTag({ content: 'nextjs-portal {display:none !important;}' });
+    await page.locator('input[name=code]').waitFor();
+    const originalCookies = await context.cookies();
+    const challengeCookie = originalCookies.find(c => c.name === 'hadahana_verification');
+    await context.addCookies([{ ...challengeCookie, value: (challengeCookie.value[0] === 'A' ? 'B' : 'A') + challengeCookie.value.slice(1) }]);
+    assert.equal((await context.request.post(root + '/api/account', { headers: { 'X-Hadahana-Action': '1' }, data: { action: 'verify-email', code: '123456' } })).status(), 400, 'Tampered verification cookie rejected');
+    await context.addCookies(originalCookies);
+    await page.locator('input[name=code]').fill('000000');
+    await page.locator('#account-panel button[type=submit]').click();
+    await page.locator('#account-error').waitFor();
+    assert(!((await context.cookies()).some(c => c.name === 'hadahana_session')));
+    // Pasting a code with spaces/hyphen is normalized to six digits.
+    await page.locator('input[name=code]').evaluate(el => { const data = new DataTransfer(); data.setData('text', '123 456'); el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true })); });
+    assert.equal(await page.locator('input[name=code]').inputValue(), '123456');
+    await page.getByRole('button', { name: 'English', exact: true }).click();
+    await page.locator('#account-panel button[type=submit]').click();
     await page.locator('#kendraya-satahana').waitFor({ timeout: 60000 });
     const account = await (await context.request.get(root + '/api/account')).json();
     assert.equal(account.profile.license.daysLeft, 20); assert.equal(account.profile.horoscopes.length, 1);
@@ -76,6 +107,9 @@ try {
   assert.equal((await request.post(root + '/api/account', { data: { action: 'logout' } })).status(), 403, 'Mutations need custom same-origin header');
   const signup = await post('/api/account', { action: 'signup', name: 'Fresh profile', email: 'fresh@example.test', password: 'Local-test123' });
   assert.equal(signup.status(), 200);
+  await checkBlocked(request, 401);
+  assert.equal((await post('/api/account', { action: 'verify-email', code: '123456' })).status(), 200);
+  assert.equal((await post('/api/account', { action: 'verify-email', code: '123456' })).status(), 400, 'Verified challenge cookie removed; cannot reuse');
   await checkBlocked(request, 403); // Active trial is not enough without a generated horoscope.
   const cast = await post('/api/cast', { date: '1995-06-15', time: '10:30', placeId: 'colombo' });
   assert((await cast.json()).satahana, 'Active account generates/saves a full chart');
@@ -90,5 +124,5 @@ try {
   const safePreview = await (await post('/api/cast', { date: '1995-06-15', time: '10:30', placeId: 'colombo' })).json();
   assert(safePreview.preview && !safePreview.satahana, 'Outage permits preview but never a full chart');
   await context.close();
-  console.log('Profile E2E passed at 1280 / 390: public preview; sign-up preserves chart; httpOnly session; full export; ownership; all feature API guards; expiry; expired sign-in; durable profile.');
+  console.log('OTP + Profile E2E passed at 1280 / 390: no session before verification; invalid/reused code; paste support; Sinhala UI;  public preview; sign-up preserves chart; httpOnly session; full export; ownership; all feature API guards; expiry; expired sign-in; durable profile.');
 } finally { await browser?.close(); app.kill('SIGTERM'); fixture.kill('SIGTERM'); }

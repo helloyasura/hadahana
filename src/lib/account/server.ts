@@ -4,6 +4,7 @@ import { configured, seal, unseal } from "./crypto";
 import type { Profile } from "./types";
 import type { BirthBody } from "../astrology/birth-schema";
 export const SESSION_COOKIE = "hadahana_session";
+export const VERIFICATION_COOKIE = "hadahana_verification";
 export const PENDING_COOKIE = "hadahana_pending";
 export const cookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" as const, path: "/hadahana", maxAge: 86400 };
 export class AccountError extends Error { constructor(message: string, public status = 503) { super(message); } }
@@ -26,11 +27,12 @@ export async function lums<T>(path: string, token?: string | null, body?: unknow
   return json as T;
 }
 export async function sessionToken() { return unseal<string>((await cookies()).get(SESSION_COOKIE)?.value, "session"); }
+export async function pendingVerification() { return unseal<string>((await cookies()).get(VERIFICATION_COOKIE)?.value, "verification"); }
 export async function pendingBirth() { return unseal<BirthBody>((await cookies()).get(PENDING_COOKIE)?.value, "pending"); }
 export async function currentProfile(): Promise<Profile | null> {
   const token = await sessionToken();
   if (!token) return null;
-  return (await lums<{ profile: Profile }>("/me", token)).profile;
+  try { return (await lums<{ profile: Profile }>("/me", token)).profile; } catch(e) { if (e instanceof AccountError && e.status === 401) return null; throw e; }
 }
 export function accountFailure(e: unknown) { return NextResponse.json({ ok: false, error: e instanceof AccountError ? e.message : "Account request failed. Please try again.", portalUrl: "https://lums.ervanta.com/portal" }, { status: e instanceof AccountError ? e.status : 400, headers: { "Cache-Control": "no-store" } }); }
 export async function requireFeature(req: Request) {

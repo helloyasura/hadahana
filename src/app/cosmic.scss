@@ -1152,3 +1152,28 @@ $surface: rgba(17, 21, 41, 0.86);
 @media(prefers-reduced-motion:reduce) {.profile-sigil {animation:none;}}
 
 .account-actions a.primary {background:linear-gradient(110deg,#8ce6d2,#b6c6f1); color:#0a1723; border:1px solid #a8eddf; font-weight:600;}
+
+// Keep the shared button base in both selected/unselected states. Sinhala marks
+// need generous line boxes; intrinsic sizes wrap BETWEEN buttons, never clip glyphs.
+.workspace .account-mode button.ghost {
+  flex: 1 1 auto;
+  font-family: var(--font-body), "Noto Sans Sinhala", sans-serif;
+  font-size: .85rem;
+  line-height: 1.9;
+  padding: .65rem 1rem;
+  min-height: 48px;
+  white-space: nowrap;
+  border-radius: .75rem;
+  &.active { border-color: #83ded1; background: #163c3b; color: #c6fff4; }
+}
+.workspace button, .workspace .account-actions a { line-height: 1.9; }
+.account-form, .account-split > * { min-width: 0; }
+.verification-card {
+  display: grid; gap: 1rem; padding: clamp(1rem, 3vw, 1.6rem);
+  border: 1px solid #478b83; border-radius: 1.2rem;
+  background: radial-gradient(ellipse at top right, #1b3f45, #101b30 75%);
+  p { line-height: 1.9; margin: 0; }
+  h3 { line-height: 1.9; margin: 0; }
+  .verification-code { font: 600 1.6rem/1.9 var(--font-body), "Noto Sans Sinhala", sans-serif; letter-spacing: .25em; text-align: center; padding: .5rem; }
+  .verification-orbit { font-size: 2.5rem; line-height: 1; color: #a4f6dd; }
+}
