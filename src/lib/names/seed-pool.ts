@@ -4,7 +4,6 @@
  */
 
 import {
-  aksharaKey,
   expandLettersWithBase,
   nameMatchesLetter,
 } from "@/lib/names/sinhala-base";

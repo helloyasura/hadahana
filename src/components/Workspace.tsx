@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import {
+  AstralWheel,
+  CosmicMark,
+  RevealObserver,
+} from "@/components/CosmicVisuals";
 import { DEFAULT_LANG, FEATURE_MATRIX, t, type Lang } from "@/lib/i18n";
 import {
   KendrayaSatahana,
@@ -16,11 +21,7 @@ import {
   placePayload,
   type PlaceFormValue,
 } from "@/components/PlaceFields";
-import {
-  runPrint,
-  type PrintMode,
-  type PrintPaper,
-} from "@/lib/print-modes";
+import { runPrint, type PrintMode, type PrintPaper } from "@/lib/print-modes";
 import { apiUrl } from "@/lib/base-path";
 
 type Tab =
@@ -91,6 +92,10 @@ function placeLabels(lang: Lang) {
 
 export function Workspace() {
   const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
+  const [motionPaused, setMotionPaused] = useState(false);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const [tab, setTab] = useState<Tab>("chart");
   const [birth, setBirth] = useState<BirthForm>(DEFAULT_BIRTH);
   const [partner, setPartner] = useState<BirthForm>({
@@ -108,9 +113,10 @@ export function Workspace() {
     string,
     unknown
   > | null>(null);
-  const [muhurtaData, setMuhurtaData] = useState<Record<string, unknown> | null>(
-    null,
-  );
+  const [muhurtaData, setMuhurtaData] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [panchangaData, setPanchangaData] = useState<Record<
     string,
     unknown
@@ -226,13 +232,55 @@ export function Workspace() {
   }
 
   return (
-    <div className="workspace">
+    <div
+      className="workspace"
+      data-motion={motionPaused ? "paused" : "playing"}
+    >
+      <RevealObserver />
+      <a className="skip-link" href="#birth-details">
+        {lang === "si" ? "උපන් විස්තර වෙත" : "Skip to birth details"}
+      </a>
+      <div className="starfield" aria-hidden="true" />
+      <div className="studio-nav no-print">
+        <a href="#" className="studio-wordmark" aria-label="Handahana Studio">
+          <CosmicMark />
+          <span>
+            HADAHANA
+            <small>{lang === "si" ? "හඳහන ස්ටූඩියෝ" : "ASTRAL STUDIO"}</small>
+          </span>
+        </a>
+        <a className="studio-nav-link" href="#workspace-tools">
+          {lang === "si" ? "ජ්‍යොතිෂ මෙවලම්" : "Explore the studio"}
+          <span aria-hidden="true"> ↗</span>
+        </a>
+        <button
+          type="button"
+          className="motion-toggle"
+          aria-pressed={motionPaused}
+          onClick={() => setMotionPaused(!motionPaused)}
+        >
+          {motionPaused
+            ? lang === "si"
+              ? "චලන සක්‍රිය කරන්න"
+              : "Resume motion"
+            : lang === "si"
+              ? "චලන නවත්වන්න"
+              : "Pause motion"}
+        </button>
+      </div>
       <header className="hero">
         <div className="hero-inner">
+          <p className="eyebrow">
+            <span className="status-dot" />{" "}
+            {lang === "si"
+              ? "පුරාණ ප්‍රඥාව · නව හැකියාවන්"
+              : "ANCIENT WISDOM · NEW POSSIBILITIES"}
+          </p>
           <p className="lang-switch" role="group" aria-label="Language">
             <button
               type="button"
               className={lang === "si" ? "active" : ""}
+              aria-pressed={lang === "si"}
               onClick={() => setLang("si")}
             >
               සිංහල
@@ -240,6 +288,7 @@ export function Workspace() {
             <button
               type="button"
               className={lang === "en" ? "active" : ""}
+              aria-pressed={lang === "en"}
               onClick={() => setLang("en")}
             >
               English
@@ -248,25 +297,62 @@ export function Workspace() {
           <h1 className="brand">{t(lang, "brand")}</h1>
           <p className="tagline">{t(lang, "tagline")}</p>
           <div className="hero-cta">
-            <button type="button" className="primary" onClick={runCast} disabled={pending}>
+            <button
+              type="button"
+              className="primary"
+              onClick={runCast}
+              disabled={pending}
+            >
               {pending ? t(lang, "casting") : t(lang, "cast")}
             </button>
-            <button type="button" className="ghost" onClick={runMuhurta} disabled={pending}>
+            <button
+              type="button"
+              className="ghost"
+              onClick={runMuhurta}
+              disabled={pending}
+            >
               {t(lang, "tabMuhurta")}
             </button>
           </div>
         </div>
-        <div className="hero-visual" aria-hidden />
+        <div className="hero-visual" aria-hidden="true">
+          <AstralWheel />
+          <span className="orbit-label orbit-label-top">
+            CELESTIAL ATLAS / 2050
+          </span>
+          <span className="orbit-label orbit-label-bottom">
+            නවග්‍රහ · NAVAGRAHA
+          </span>
+        </div>
+        <div className="hero-baseline" aria-hidden="true">
+          <span>01 — 09 / COSMIC EXPLORATION</span>
+          <span>✧</span>
+          <span>TRADITION, REIMAGINED</span>
+        </div>
       </header>
 
-      <section className="panel birth-panel">
-        <h2>{t(lang, "birthDetails")}</h2>
+      <section
+        className="panel birth-panel reveal"
+        id="birth-details"
+        aria-labelledby="birth-title"
+      >
+        <div className="section-heading">
+          <div>
+            <span className="section-index" aria-hidden="true">
+              01 / YOUR ORIGIN
+            </span>
+            <h2 id="birth-title">{t(lang, "birthDetails")}</h2>
+          </div>
+          <CosmicMark />
+        </div>
         <div className="grid-form">
           <label>
             <span>{t(lang, "name")}</span>
             <input
               value={birth.nativeName}
-              onChange={(e) => setBirth({ ...birth, nativeName: e.target.value })}
+              onChange={(e) =>
+                setBirth({ ...birth, nativeName: e.target.value })
+              }
             />
           </label>
           <label>
@@ -308,24 +394,61 @@ export function Workspace() {
           onChange={(place) => setBirth({ ...birth, place })}
           labels={placeLabels(lang)}
         />
-        {error ? <p className="error">{error}</p> : null}
+        <div className="birth-actions">
+          <button
+            type="button"
+            className="primary"
+            onClick={runCast}
+            disabled={pending}
+          >
+            {pending ? t(lang, "casting") : t(lang, "cast")}
+            <span aria-hidden="true"> ↗</span>
+          </button>
+          <span aria-hidden="true">✧</span>
+        </div>
+        {error ? (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        ) : null}
       </section>
 
-      <section className="features">
-        <h2>{t(lang, "features")}</h2>
+      <section
+        className="features reveal"
+        id="workspace-tools"
+        aria-labelledby="features-title"
+      >
+        <div className="section-heading">
+          <div>
+            <span className="section-index" aria-hidden="true">
+              02 / THE POSSIBILITIES
+            </span>
+            <h2 id="features-title">{t(lang, "features")}</h2>
+          </div>
+          <span className="section-symbol" aria-hidden="true">
+            ✧
+          </span>
+        </div>
         <ul>
-          {FEATURE_MATRIX.map((f) => (
-            <li key={f.id}>{lang === "si" ? f.si : f.en}</li>
+          {FEATURE_MATRIX.map((f, index) => (
+            <li key={f.id}>
+              <span className="feature-index" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span>{lang === "si" ? f.si : f.en}</span>
+            </li>
           ))}
         </ul>
       </section>
 
-      <nav className="tabs" aria-label="Workspace tabs">
+      <nav className="tabs reveal" aria-label="Workspace tabs">
         {TABS.map((tabItem) => (
           <button
             key={tabItem.id}
             type="button"
             className={tab === tabItem.id ? "active" : ""}
+            aria-pressed={tab === tabItem.id}
+            aria-controls="workspace-results"
             onClick={() => setTab(tabItem.id)}
           >
             {t(lang, tabItem.key)}
@@ -333,82 +456,381 @@ export function Workspace() {
         ))}
       </nav>
 
-      <main className="results">
-        {!satahana &&
-        !chart &&
-        tab !== "porondam" &&
-        tab !== "muhurta" &&
-        tab !== "panchanga" &&
-        tab !== "nam" ? (
-          <p className="empty">
-            {lang === "si"
-              ? "කේන්ද්‍රය සාදා ප්‍රතිඵල බලන්න."
-              : "Cast a Kendraya to see results."}
-          </p>
-        ) : null}
-
-        {tab === "chart" && satahana ? (
-          <div className="stack satahana-host">
-            <PrintControls
-              lang={lang}
-              mode={printMode}
-              paper={printPaper}
-              onModeChange={setPrintMode}
-              onPaperChange={setPrintPaper}
-            />
-            <KendrayaSatahana data={satahana} />
+      <main className="results" id="workspace-results" aria-busy={pending}>
+        {pending ? (
+          <div className="cosmic-loading no-print" role="status">
+            <span aria-hidden="true" />
+            {t(lang, "casting")}
           </div>
         ) : null}
-
-        {tab === "nam" ? (
-          <div className="stack">
-            {nam ? (
-              <>
-                <p className="primary-letter">
-                  {t(lang, "primaryLetters")}:{" "}
-                  <strong>
-                    {String(nam.primaryAksharaSinhala)} /{" "}
-                    {String(nam.primaryAksharaRoman)}
-                  </strong>
-                </p>
-                <p>
-                  {t(lang, "secondaryLetters")}:{" "}
-                  {(
-                    letterSet?.allRecommendedSinhala as string[] | undefined
-                  )?.join(" · ")}
-                </p>
-                <p>
-                  {t(lang, "especiallyGood")}:{" "}
-                  {(letterSet?.especiallyGood as string[] | undefined)?.join(
-                    " · ",
-                  ) || "—"}
-                </p>
-                <p>
-                  {t(lang, "avoidLetters")}:{" "}
-                  {(
-                    (letterSet?.avoidTara as Array<{
-                      nekathaSpoken: string;
-                    }>) ?? []
-                  )
-                    .map((x) => x.nekathaSpoken)
-                    .join(" · ")}
-                </p>
-                <ul className="plain">
-                  {(nam.guidance as string[] | undefined)?.map((g) => (
-                    <li key={g}>{g}</li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <p className="muted">
+        <div key={tab} className="result-reveal">
+          {!satahana &&
+          !chart &&
+          tab !== "porondam" &&
+          tab !== "muhurta" &&
+          tab !== "panchanga" &&
+          tab !== "nam" ? (
+            <div className="empty-state">
+              <CosmicMark />
+              <p className="empty">
                 {lang === "si"
-                  ? "කේන්ද්‍ර අකුරු සඳහා කේන්ද්‍රය සාදන්න. නැතහොත් පහත Name Studio හි 'අතින් අකුරු' භාවිතා කරන්න."
-                  : "Cast a Kendraya for chart letters, or use Manual letters in Name Studio below."}
+                  ? "කේන්ද්‍රය සාදා ප්‍රතිඵල බලන්න."
+                  : "Cast a Kendraya to see results."}
               </p>
-            )}
-            <NameStudio
+            </div>
+          ) : null}
+
+          {tab === "chart" && satahana ? (
+            <div className="stack satahana-host">
+              <PrintControls
+                lang={lang}
+                mode={printMode}
+                paper={printPaper}
+                onModeChange={setPrintMode}
+                onPaperChange={setPrintPaper}
+              />
+              <KendrayaSatahana data={satahana} />
+            </div>
+          ) : null}
+
+          {tab === "nam" ? (
+            <div className="stack">
+              {nam ? (
+                <>
+                  <p className="primary-letter">
+                    {t(lang, "primaryLetters")}:{" "}
+                    <strong>
+                      {String(nam.primaryAksharaSinhala)} /{" "}
+                      {String(nam.primaryAksharaRoman)}
+                    </strong>
+                  </p>
+                  <p>
+                    {t(lang, "secondaryLetters")}:{" "}
+                    {(
+                      letterSet?.allRecommendedSinhala as string[] | undefined
+                    )?.join(" · ")}
+                  </p>
+                  <p>
+                    {t(lang, "especiallyGood")}:{" "}
+                    {(letterSet?.especiallyGood as string[] | undefined)?.join(
+                      " · ",
+                    ) || "—"}
+                  </p>
+                  <p>
+                    {t(lang, "avoidLetters")}:{" "}
+                    {(
+                      (letterSet?.avoidTara as Array<{
+                        nekathaSpoken: string;
+                      }>) ?? []
+                    )
+                      .map((x) => x.nekathaSpoken)
+                      .join(" · ")}
+                  </p>
+                  <ul className="plain">
+                    {(nam.guidance as string[] | undefined)?.map((g) => (
+                      <li key={g}>{g}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="muted">
+                  {lang === "si"
+                    ? "කේන්ද්‍ර අකුරු සඳහා කේන්ද්‍රය සාදන්න. නැතහොත් පහත Name Studio හි 'අතින් අකුරු' භාවිතා කරන්න."
+                    : "Cast a Kendraya for chart letters, or use Manual letters in Name Studio below."}
+                </p>
+              )}
+              <NameStudio
+                lang={lang}
+                hasChart={Boolean(nam)}
+                birth={{
+                  date: birth.date,
+                  time: birth.time,
+                  gender: birth.gender,
+                  nativeName: birth.nativeName,
+                  ...placePayload(birth.place),
+                }}
+              />
+            </div>
+          ) : null}
+
+          {tab === "palapala" && palapala ? (
+            <div className="stack">
+              <ul className="plain">
+                {(
+                  (lang === "si"
+                    ? palapala.summarySi
+                    : palapala.summaryEn) as string[]
+                )?.map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ul>
+              <div className="bhava-grid">
+                {(palapala.houses as Array<Record<string, unknown>>).map(
+                  (h) => (
+                    <article key={String(h.bhava)}>
+                      <h4>
+                        {String(h.bhava)}. {String(h.sinhala || h.sanskrit)}
+                      </h4>
+                      <p className="muted">{String(h.themes)}</p>
+                      <p>
+                        {(
+                          h.occupants as Array<{
+                            grahaSinhala: string;
+                            graha: string;
+                          }>
+                        )
+                          .map((o) =>
+                            lang === "si" ? o.grahaSinhala : o.graha,
+                          )
+                          .join(", ") || (lang === "si" ? "හිස්" : "empty")}
+                      </p>
+                    </article>
+                  ),
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {tab === "porondam" ? (
+            <div className="stack">
+              <h3>{t(lang, "partner")}</h3>
+              <div className="grid-form">
+                <label>
+                  <span>{t(lang, "date")}</span>
+                  <input
+                    type="date"
+                    value={partner.date}
+                    onChange={(e) =>
+                      setPartner({ ...partner, date: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  <span>{t(lang, "time")}</span>
+                  <input
+                    type="time"
+                    value={partner.time}
+                    onChange={(e) =>
+                      setPartner({ ...partner, time: e.target.value })
+                    }
+                  />
+                </label>
+              </div>
+              <PlaceFields
+                lang={lang}
+                value={partner.place}
+                onChange={(place) => setPartner({ ...partner, place })}
+                labels={placeLabels(lang)}
+              />
+              <button
+                type="button"
+                className="primary"
+                onClick={runPorondam}
+                disabled={pending}
+              >
+                {t(lang, "match")}
+              </button>
+              {porondamData ? (
+                <>
+                  <p className="score">
+                    {String(porondamData.score)} / {String(porondamData.max)} (
+                    {String(porondamData.percent)}%)
+                  </p>
+                  <ul className="plain">
+                    {(
+                      porondamData.points as Array<Record<string, unknown>>
+                    ).map((p) => (
+                      <li key={String(p.id)}>
+                        {p.ok ? "✓" : "✗"}{" "}
+                        {lang === "si" ? String(p.nameSi) : String(p.nameEn)} —{" "}
+                        {String(p.detail)}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
+          {tab === "muhurta" ? (
+            <div className="stack">
+              <NakathFinder
+                lang={lang}
+                birth={toPayload(birth)}
+                place={birth.place}
+                hasChart={Boolean(castData)}
+              />
+              <hr className="nakath-divider" />
+              <h4>
+                {lang === "si"
+                  ? "දෛනික රාහු / යමගණ්ඩ / ගුලික"
+                  : "Daily Rahu / Yamaganda / Gulika"}
+              </h4>
+              <button
+                type="button"
+                className="primary"
+                onClick={runMuhurta}
+                disabled={pending}
+              >
+                {lang === "si"
+                  ? "උපන් දිනයේ මුහුර්ත කවුළු"
+                  : "Muhurta windows for birth date"}
+              </button>
+              {muhurtaData ? (
+                <>
+                  <p>
+                    {lang === "si"
+                      ? String(muhurtaData.weekdaySi)
+                      : String(muhurtaData.weekdayEn)}{" "}
+                    · {String(muhurtaData.sunrise)} –{" "}
+                    {String(muhurtaData.sunset)}
+                  </p>
+                  <div className="kv-row">
+                    <div>
+                      <h3>{t(lang, "rahu")}</h3>
+                      <p>
+                        {
+                          (
+                            muhurtaData.rahuKalaya as {
+                              start: string;
+                              end: string;
+                            }
+                          ).start
+                        }{" "}
+                        –{" "}
+                        {
+                          (
+                            muhurtaData.rahuKalaya as {
+                              start: string;
+                              end: string;
+                            }
+                          ).end
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <h3>Yamaganda / යමගණ්ඩ</h3>
+                      <p>
+                        {
+                          (
+                            muhurtaData.yamaganda as {
+                              start: string;
+                              end: string;
+                            }
+                          ).start
+                        }{" "}
+                        –{" "}
+                        {
+                          (
+                            muhurtaData.yamaganda as {
+                              start: string;
+                              end: string;
+                            }
+                          ).end
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <h3>Gulika / ගුලික</h3>
+                      <p>
+                        {
+                          (muhurtaData.gulika as { start: string; end: string })
+                            .start
+                        }{" "}
+                        –{" "}
+                        {
+                          (muhurtaData.gulika as { start: string; end: string })
+                            .end
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <p>
+                    {lang === "si"
+                      ? String(muhurtaData.namingAdviceSi)
+                      : String(muhurtaData.namingAdviceEn)}
+                  </p>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
+          {tab === "panchanga" ? (
+            <div className="stack">
+              <button
+                type="button"
+                className="primary"
+                onClick={runPanchanga}
+                disabled={pending}
+              >
+                {t(lang, "tabPanchanga")}
+              </button>
+              {panchangaData ? (
+                <pre className="json-block">
+                  {JSON.stringify(
+                    {
+                      vara: panchangaData.vara,
+                      panchang: panchangaData.panchang,
+                      sunriseSunset: panchangaData.sunriseSunset,
+                      inauspiciousLocal: panchangaData.inauspiciousLocal,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              ) : null}
+            </div>
+          ) : null}
+
+          {tab === "dosha" && dosha ? (
+            <div className="stack">
+              <p>
+                Kuja:{" "}
+                {(dosha.kujaDosha as { present: boolean }).present
+                  ? lang === "si"
+                    ? "පවතී"
+                    : "present"
+                  : lang === "si"
+                    ? "නැත"
+                    : "not flagged"}{" "}
+                (Lagna{" "}
+                {(dosha.kujaDosha as { fromLagna: boolean }).fromLagna
+                  ? "✓"
+                  : "✗"}
+                , Chandra{" "}
+                {(dosha.kujaDosha as { fromChandra: boolean }).fromChandra
+                  ? "✓"
+                  : "✗"}
+                )
+              </p>
+              <ul className="plain">
+                {(dosha.yogas as Array<Record<string, unknown>>).map((y) => (
+                  <li key={String(y.id)}>
+                    {y.present ? "✓" : "✗"}{" "}
+                    {lang === "si" ? String(y.nameSi) : String(y.nameEn)} —{" "}
+                    {String(y.detail)}
+                  </li>
+                ))}
+              </ul>
+              {chart?.yogas ? (
+                <p>
+                  Kalsarpa:{" "}
+                  {(chart.yogas as { kalsarpaPresent: boolean }).kalsarpaPresent
+                    ? String(
+                        (chart.yogas as { kalsarpaVerdict: string })
+                          .kalsarpaVerdict,
+                      )
+                    : lang === "si"
+                      ? "නැත"
+                      : "not present"}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {tab === "agent" ? (
+            <AthurudayaAgent
               lang={lang}
-              hasChart={Boolean(nam)}
               birth={{
                 date: birth.date,
                 time: birth.time,
@@ -417,308 +839,72 @@ export function Workspace() {
                 ...placePayload(birth.place),
               }}
             />
-          </div>
-        ) : null}
+          ) : null}
 
-        {tab === "palapala" && palapala ? (
-          <div className="stack">
-            <ul className="plain">
-              {(
-                (lang === "si"
-                  ? palapala.summarySi
-                  : palapala.summaryEn) as string[]
-              )?.map((s) => (
-                <li key={s}>{s}</li>
-              ))}
-            </ul>
-            <div className="bhava-grid">
-              {(palapala.houses as Array<Record<string, unknown>>).map((h) => (
-                <article key={String(h.bhava)}>
-                  <h4>
-                    {String(h.bhava)}. {String(h.sinhala || h.sanskrit)}
-                  </h4>
-                  <p className="muted">{String(h.themes)}</p>
-                  <p>
-                    {(h.occupants as Array<{ grahaSinhala: string; graha: string }>)
-                      .map((o) => (lang === "si" ? o.grahaSinhala : o.graha))
-                      .join(", ") || (lang === "si" ? "හිස්" : "empty")}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {tab === "porondam" ? (
-          <div className="stack">
-            <h3>{t(lang, "partner")}</h3>
-            <div className="grid-form">
-              <label>
-                <span>{t(lang, "date")}</span>
-                <input
-                  type="date"
-                  value={partner.date}
-                  onChange={(e) =>
-                    setPartner({ ...partner, date: e.target.value })
-                  }
-                />
-              </label>
-              <label>
-                <span>{t(lang, "time")}</span>
-                <input
-                  type="time"
-                  value={partner.time}
-                  onChange={(e) =>
-                    setPartner({ ...partner, time: e.target.value })
-                  }
-                />
-              </label>
-            </div>
-            <PlaceFields
-              lang={lang}
-              value={partner.place}
-              onChange={(place) => setPartner({ ...partner, place })}
-              labels={placeLabels(lang)}
-            />
-            <button type="button" className="primary" onClick={runPorondam} disabled={pending}>
-              {t(lang, "match")}
-            </button>
-            {porondamData ? (
-              <>
-                <p className="score">
-                  {String(porondamData.score)} / {String(porondamData.max)} (
-                  {String(porondamData.percent)}%)
-                </p>
-                <ul className="plain">
-                  {(porondamData.points as Array<Record<string, unknown>>).map(
-                    (p) => (
-                      <li key={String(p.id)}>
-                        {p.ok ? "✓" : "✗"}{" "}
-                        {lang === "si" ? String(p.nameSi) : String(p.nameEn)} —{" "}
-                        {String(p.detail)}
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-
-        {tab === "muhurta" ? (
-          <div className="stack">
-            <NakathFinder
-              lang={lang}
-              birth={toPayload(birth)}
-              place={birth.place}
-              hasChart={Boolean(castData)}
-            />
-            <hr className="nakath-divider" />
-            <h4>
-              {lang === "si"
-                ? "දෛනික රාහු / යමගණ්ඩ / ගුලික"
-                : "Daily Rahu / Yamaganda / Gulika"}
-            </h4>
-            <button type="button" className="primary" onClick={runMuhurta} disabled={pending}>
-              {lang === "si"
-                ? "උපන් දිනයේ මුහුර්ත කවුළු"
-                : "Muhurta windows for birth date"}
-            </button>
-            {muhurtaData ? (
-              <>
-                <p>
-                  {lang === "si"
-                    ? String(muhurtaData.weekdaySi)
-                    : String(muhurtaData.weekdayEn)}{" "}
-                  · {String(muhurtaData.sunrise)} – {String(muhurtaData.sunset)}
-                </p>
-                <div className="kv-row">
-                  <div>
-                    <h3>{t(lang, "rahu")}</h3>
-                    <p>
-                      {
-                        (muhurtaData.rahuKalaya as { start: string; end: string })
-                          .start
-                      }{" "}
-                      –{" "}
-                      {
-                        (muhurtaData.rahuKalaya as { start: string; end: string })
-                          .end
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <h3>Yamaganda / යමගණ්ඩ</h3>
-                    <p>
-                      {
-                        (muhurtaData.yamaganda as { start: string; end: string })
-                          .start
-                      }{" "}
-                      –{" "}
-                      {
-                        (muhurtaData.yamaganda as { start: string; end: string })
-                          .end
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <h3>Gulika / ගුලික</h3>
-                    <p>
-                      {
-                        (muhurtaData.gulika as { start: string; end: string }).start
-                      }{" "}
-                      –{" "}
-                      {(muhurtaData.gulika as { start: string; end: string }).end}
-                    </p>
-                  </div>
-                </div>
-                <p>
-                  {lang === "si"
-                    ? String(muhurtaData.namingAdviceSi)
-                    : String(muhurtaData.namingAdviceEn)}
-                </p>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-
-        {tab === "panchanga" ? (
-          <div className="stack">
-            <button type="button" className="primary" onClick={runPanchanga} disabled={pending}>
-              {t(lang, "tabPanchanga")}
-            </button>
-            {panchangaData ? (
-              <pre className="json-block">
-                {JSON.stringify(
-                  {
-                    vara: panchangaData.vara,
-                    panchang: panchangaData.panchang,
-                    sunriseSunset: panchangaData.sunriseSunset,
-                    inauspiciousLocal: panchangaData.inauspiciousLocal,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
-            ) : null}
-          </div>
-        ) : null}
-
-        {tab === "dosha" && dosha ? (
-          <div className="stack">
-            <p>
-              Kuja:{" "}
-              {(dosha.kujaDosha as { present: boolean }).present
-                ? lang === "si"
-                  ? "පවතී"
-                  : "present"
-                : lang === "si"
-                  ? "නැත"
-                  : "not flagged"}{" "}
-              (Lagna{" "}
-              {(dosha.kujaDosha as { fromLagna: boolean }).fromLagna ? "✓" : "✗"}
-              , Chandra{" "}
-              {(dosha.kujaDosha as { fromChandra: boolean }).fromChandra
-                ? "✓"
-                : "✗"}
-              )
-            </p>
-            <ul className="plain">
-              {(dosha.yogas as Array<Record<string, unknown>>).map((y) => (
-                <li key={String(y.id)}>
-                  {y.present ? "✓" : "✗"}{" "}
-                  {lang === "si" ? String(y.nameSi) : String(y.nameEn)} —{" "}
-                  {String(y.detail)}
-                </li>
-              ))}
-            </ul>
-            {chart?.yogas ? (
-              <p>
-                Kalsarpa:{" "}
-                {(chart.yogas as { kalsarpaPresent: boolean }).kalsarpaPresent
-                  ? String((chart.yogas as { kalsarpaVerdict: string }).kalsarpaVerdict)
-                  : lang === "si"
-                    ? "නැත"
-                    : "not present"}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {tab === "agent" ? (
-          <AthurudayaAgent
-            lang={lang}
-            birth={{
-              date: birth.date,
-              time: birth.time,
-              gender: birth.gender,
-              nativeName: birth.nativeName,
-              ...placePayload(birth.place),
-            }}
-          />
-        ) : null}
-
-        {tab === "export" ? (
-          <div className="stack">
-            <PrintControls
-              lang={lang}
-              mode={printMode}
-              paper={printPaper}
-              onModeChange={setPrintMode}
-              onPaperChange={setPrintPaper}
-              disabled={!satahana}
-            />
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => {
-                if (!satahana) return;
-                setTab("chart");
-                window.setTimeout(
-                  () => runPrint(printMode, printPaper),
-                  250,
-                );
-              }}
-              disabled={!satahana}
-            >
-              {lang === "si"
-                ? "කේන්ද්‍ර ටැබය විවෘත කර මුද්‍රණය"
-                : "Open chart tab & print"}
-            </button>
-            <button
-              type="button"
-              className="ghost"
-              onClick={downloadJson}
-              disabled={!castData}
-            >
-              {t(lang, "json")}
-            </button>
-            {satahana ? (
-              <p className="muted">
+          {tab === "export" ? (
+            <div className="stack">
+              <PrintControls
+                lang={lang}
+                mode={printMode}
+                paper={printPaper}
+                onModeChange={setPrintMode}
+                onPaperChange={setPrintPaper}
+                disabled={!satahana}
+              />
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => {
+                  if (!satahana) return;
+                  setTab("chart");
+                  window.setTimeout(() => runPrint(printMode, printPaper), 250);
+                }}
+                disabled={!satahana}
+              >
                 {lang === "si"
-                  ? "එක් පිටුව / බහු-පිටු / පොත් / චාර්ට් පමණි — A4 සඳහා සැකසූ මුද්‍රණ ආකාර."
-                  : "Single page, multi-page, print book, or charts-only — A4-tuned layouts."}
-              </p>
-            ) : null}
-            {castData ? (
-              <pre className="json-block">
-                {JSON.stringify(
-                  {
-                    native: chart?.native,
-                    lagna: chart?.lagna,
-                    chandra: chart?.chandra,
-                    namThebima: nam,
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
-            ) : null}
-          </div>
-        ) : null}
+                  ? "කේන්ද්‍ර ටැබය විවෘත කර මුද්‍රණය"
+                  : "Open chart tab & print"}
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                onClick={downloadJson}
+                disabled={!castData}
+              >
+                {t(lang, "json")}
+              </button>
+              {satahana ? (
+                <p className="muted">
+                  {lang === "si"
+                    ? "එක් පිටුව / බහු-පිටු / පොත් / චාර්ට් පමණි — A4 සඳහා සැකසූ මුද්‍රණ ආකාර."
+                    : "Single page, multi-page, print book, or charts-only — A4-tuned layouts."}
+                </p>
+              ) : null}
+              {castData ? (
+                <pre className="json-block">
+                  {JSON.stringify(
+                    {
+                      native: chart?.native,
+                      lagna: chart?.lagna,
+                      chandra: chart?.chandra,
+                      namThebima: nam,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </main>
 
       <footer className="foot">
+        <div className="footer-signature" aria-hidden="true">
+          <CosmicMark />
+          <span>HADAHANA / ASTRAL STUDIO</span>
+          <span>✧</span>
+        </div>
         <p>{t(lang, "disclaimer")}</p>
       </footer>
     </div>

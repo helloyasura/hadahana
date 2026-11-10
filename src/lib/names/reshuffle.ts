@@ -188,7 +188,6 @@ export function reshuffleNamePart(input: {
       ? pick.meaningEn
       : current.meaningEn.split("·")[1]?.trim() || current.meaningEn;
 
-  const country = input.country;
   return {
     ...current,
     first,

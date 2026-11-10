@@ -88,7 +88,6 @@ function classicNavagraha(planets: PlanetRow[]): PlanetRow[] {
 
 function padaBorderWarning(
   moonLon: number,
-  pada: number,
 ): { nearPadaSandhi: boolean; degreesToPadaEdge: number } {
   const { degreeInPada } = degreesInNakshatra(moonLon);
   const toPrev = degreeInPada;
@@ -127,7 +126,7 @@ export async function castKendraya(input: BirthInput) {
 
   const nekatha = findNekatha(moon.nakshatra);
   const letterSet = namingLetterSet(moon.nakshatra, moon.nakshatra_pada);
-  const border = padaBorderWarning(moon.longitude, moon.nakshatra_pada);
+  const border = padaBorderWarning(moon.longitude);
   const lagnaRashi = rashiLabel(raw.ascendant.sign);
   const chandraRashi = rashiLabel(moon.sign);
   const weekday = weekdayIndexFromYmd(date, time);
