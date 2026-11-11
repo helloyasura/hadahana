@@ -71,3 +71,37 @@ Depends on visual studio PR #21. No production environment or ephemeris change.
 - Per-client notes are separate from an astrologer's profile-level method notes.
   Private metadata never enters public share-link responses. Client comparisons
   are display tools, not relationship/outcome scores.
+
+## Expanded reference library and yoga candidates
+- `/pro/reference` and Ctrl/Cmd+K include seven-planet sign dignities and deep
+  exaltation degrees, directed natural friendships, compact traditional karaka
+  notes, sign/house references, and the existing 27-star Gana/Yoni/pada tables.
+  Gana/Yoni data was extracted unchanged from `porondam.ts` into a shared pure
+  table, not independently promoted to a complete matching verdict.
+- Source pages opened and checked during implementation:
+  - https://vedicpupil.in/library/books/brihat-parashara-hora-shastra/chapter-3
+    (12–13 significations, 49–50 exaltation, 55 natural friendship; edition
+    numbering can differ). Own-sign lords match existing Hadahana RASHI data.
+  - https://navapanchangam.com/learn/chart_foundations/natural-planetary-friendship
+    (the seven-planet row table; asymmetric Moon/Mercury relation is tested).
+  - https://vedicpupil.in/library/books/brihat-parashara-hora-shastra/chapter-75
+    (1–2, five Mahapurusha formations).
+  - https://nidarshanavedh.com/blog/yogas/gaja-kesari-yoga/
+    (basic Moon-kendra Gajakesari vs stricter classical qualifications).
+- Yoga table is **D1 whole-sign geometric candidate detection**, irrespective of
+  D9/equal-house display: Ruchaka, Bhadra, Hamsa, Malavya, Shasha (own/exalted
+  sign plus kendra), and basic Gajakesari (Jupiter 1/4/7/10 from Moon).
+  Combustion/debility cautions are shown. These are not fully qualified yogas:
+  benefic support, strength, cancellations, Moon condition and other school-
+  dependent conditions require manual assessment. No outcome predictions/scores.
+- Rahu/Ketu dignities/friendships and Deity/Nadi tables are not supplied: conventions
+  need additional source review. Natural friendship is not temporary/fivefold.
+
+## Strength calculations deliberately deferred
+The dependency exposes an Ashtakavarga result type, but there are no independently
+validated known-chart values established for this integration. Generic total-sum
+invariants or agreement with the same implementation would not independently
+validate a chart. Shadbala requires multiple strength components/conventions and
+known reference outputs. Neither Shadbala nor Ashtakavarga scores are exposed until
+those fixtures and tolerances exist. Dignity flags/reference tables are **not**
+misrepresented as those strength calculations.

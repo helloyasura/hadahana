@@ -203,3 +203,64 @@ assert.equal(filterClientRecords(archive, "unknown").length, 0);
 console.log(
   "Client archive: metadata bounds/unique tags, Sinhala/English multi-term search and stable newest-first order passed.",
 );
+
+const {
+  CLASSICAL_PLANETS,
+  PLANET_REFERENCE,
+  signDignity,
+  naturalFriendship,
+  referenceEntries,
+} = await import("../src/lib/pro/references");
+const { GANA, YONI } = await import(
+  "../src/lib/astrology/nakshatra-attributes"
+);
+const { yogaCandidates } = await import("../src/lib/pro/yogas");
+assert.deepEqual(
+  CLASSICAL_PLANETS.map((p) => PLANET_REFERENCE[p].exaltDegree),
+  [10, 3, 28, 15, 5, 27, 20],
+);
+assert.equal(naturalFriendship("Moon", "Mercury"), "friend");
+assert.equal(naturalFriendship("Mercury", "Moon"), "enemy");
+assert.equal(Object.keys(GANA).length, 27);
+assert.equal(Object.keys(YONI).length, 27);
+assert.equal(referenceEntries().length, 58);
+for (const planet of CLASSICAL_PLANETS) {
+  const row = PLANET_REFERENCE[planet];
+  assert.equal(
+    signDignity(planet, row.exalted * 30 + row.exaltDegree).exalted,
+    true,
+  );
+  assert.equal(
+    signDignity(planet, ((row.exalted + 6) % 12) * 30 + row.exaltDegree)
+      .debilitated,
+    true,
+  );
+  assert.ok(!row.friends.some((p) => row.enemies.includes(p)));
+}
+const factors = (mars: number, jupiter = 90, moon = 0, asc = 0) => ({
+  lagna: { longitude: asc },
+  navagraha: [
+    { graha: "Mars", longitude: mars },
+    { graha: "Jupiter", longitude: jupiter },
+    { graha: "Moon", longitude: moon },
+  ],
+});
+assert.equal(yogaCandidates(factors(270))[0].matched, true);
+assert.equal(yogaCandidates(factors(270, 90, 0, 240))[0].matched, false);
+assert.equal(yogaCandidates(factors(30))[0].matched, false);
+assert.equal(yogaCandidates(factors(270)).at(-1)!.matched, true);
+assert.equal(yogaCandidates(factors(270, 120)).at(-1)!.matched, false);
+const { castKendraya } = await import("../src/lib/astrology/kendraya");
+const normal = await castKendraya(input),
+  precise = await castKendraya(input, undefined, { precise: true });
+assert.equal(normal.navagraha[0].longitudeExact, undefined);
+assert.equal(precise.navagraha[0].longitude, normal.navagraha[0].longitude);
+assert.equal(typeof precise.navagraha[0].longitudeExact, "number");
+assert.ok(
+  Math.abs(
+    precise.navagraha[0].longitudeExact! - normal.navagraha[0].longitude,
+  ) < 0.000001,
+);
+console.log(
+  "References/yogas: seven-planet source table, friendship asymmetry, 27-star metadata, own/exaltation candidates and negative/cusp geometry; precise mode preserves consumer fields.",
+);

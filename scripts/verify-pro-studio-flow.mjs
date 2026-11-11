@@ -255,9 +255,7 @@ try {
   assert.equal(await page.locator(".studio-planet").count(), 10);
   assert.equal(await page.locator(".studio-nak-label").count(), 27);
   assert.equal(
-    await page
-      .locator(".studio-worksheet:not(.studio-dasha-browser) tbody tr")
-      .count(),
+    await page.locator(".studio-planet-worksheet tbody tr").count(),
     10,
   );
   await page.getByRole("button", { name: /Live/ }).click();
@@ -618,6 +616,26 @@ try {
       });
     }
   }
+  await page.goto(`${origin}${base}/pro/reference`);
+  await page.getByLabel("Search reference library").fill("Dignity");
+  assert.equal(await page.locator(".studio-reference-grid article").count(), 7);
+  for (const [width, size] of [
+    [1440, "desktop"],
+    [390, "mobile"],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
+    await page.screenshot({
+      path: path.join(shots, `pro-v2-library-${size}.png`),
+      fullPage: true,
+    });
+  }
+  await page.getByLabel("Search reference library").fill("Gana Deva");
+  assert.ok((await page.locator(".studio-reference-grid article").count()) > 0);
   expired.add(subjectFor("pilot-a@example.test"));
   await check(
     await post(context, "/studio", { input: synthetic, config: defaults }),
