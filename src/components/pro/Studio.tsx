@@ -21,6 +21,7 @@ import Shell from "./Shell";
 import StudioWheel, { bodyDescription } from "./StudioWheel";
 import StudioReference from "./StudioReference";
 import DashaBrowser from "./DashaBrowser";
+import SaveChart from "./SaveChart";
 import TransitDesk, { type TransitOverlay } from "./TransitDesk";
 
 export function zonedClock(ms: number, timezone: string) {
@@ -836,6 +837,13 @@ export default function Studio() {
             </section>
           )}
         </>
+      )}
+      {result && (
+        <SaveChart
+          result={result}
+          config={overlay?.calculation ?? resultConfig}
+          ready={!pending && !error}
+        />
       )}
       {loaded && (
         <TransitDesk

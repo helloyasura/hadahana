@@ -155,3 +155,51 @@ assert.ok(
 console.log(
   "Consultation engines: almanac state isolation, civil validation, inherited matching warnings and bounded nakath shortlist passed.",
 );
+
+const { chartMetadataSchema, filterClientRecords } = await import(
+  "../src/lib/pro/chart-metadata"
+);
+assert.equal(
+  chartMetadataSchema.safeParse({
+    label: "A",
+    tags: ["same", "same"],
+    notes: "",
+  }).success,
+  false,
+);
+assert.equal(
+  chartMetadataSchema.safeParse({
+    label: "A",
+    tags: [],
+    notes: "x".repeat(6001),
+  }).success,
+  false,
+);
+const archive = [
+  {
+    id: "a",
+    createdAt: 1,
+    lagna: "මේෂ",
+    label: "Alpha",
+    tags: ["vedic"],
+    notes: "private family",
+  },
+  {
+    id: "b",
+    createdAt: 2,
+    lagna: "Cancer",
+    label: "Beta",
+    tags: ["work"],
+    notes: "",
+  },
+];
+assert.deepEqual(
+  filterClientRecords(archive, "").map((c) => c.id),
+  ["b", "a"],
+);
+assert.equal(filterClientRecords(archive, "ALPHA vedic මේෂ")[0].id, "a");
+assert.equal(filterClientRecords(archive, "family").length, 1);
+assert.equal(filterClientRecords(archive, "unknown").length, 0);
+console.log(
+  "Client archive: metadata bounds/unique tags, Sinhala/English multi-term search and stable newest-first order passed.",
+);

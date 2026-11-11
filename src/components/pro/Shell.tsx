@@ -30,6 +30,7 @@ export default function Shell({
             ["presets", "ගණනය කිරීමේ ක්‍රම", "/pro/presets"],
             ["links", "සබැඳි", "/pro/links"],
             ["tools", "යොමු මෙවලම්", "/pro/tools"],
+            ["clients", "සේවාලාභී සටහන්", "/pro/clients"],
           ].map(([key, label, url]) => (
             <a
               key={key}
