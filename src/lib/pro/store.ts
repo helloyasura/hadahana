@@ -44,6 +44,10 @@ export type ShareLink = {
   createdAt: number;
 };
 export type Client = {
+  label?: string;
+  tags?: string[];
+  notes?: string;
+  updatedAt?: number;
   id: string;
   ownerId: string;
   linkId: string;

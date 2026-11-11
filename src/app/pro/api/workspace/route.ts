@@ -15,9 +15,11 @@ import {
   ProError,
 } from "@/lib/pro/store";
 import { calculationConfigSchema } from "@/lib/astrology/config";
+import { chartMetadataSchema } from "@/lib/pro/chart-metadata";
 import { studioSettingsSchema } from "@/lib/pro/studio";
 export const runtime = "nodejs";
 const bodySchema = z.discriminatedUnion("action", [
+  chartMetadataSchema.extend({ action: z.literal("chartMeta"), id: z.uuid() }),
   z.object({ action: z.literal("studio"), settings: studioSettingsSchema }),
   z.object({
     action: z.literal("profile"),
@@ -84,6 +86,11 @@ export async function GET(req: Request) {
               createdAt: c.createdAt,
               presetId: c.presetId,
               lagna: c.result.lagna.rashiSinhala,
+              label:
+                c.label ??
+                `සේවාලාභී · ${new Date(c.createdAt).toLocaleDateString("en-GB", { timeZone: "Asia/Colombo" })}`,
+              tags: c.tags ?? [],
+              notes: c.notes ?? "",
             })),
         };
       }),
@@ -106,7 +113,18 @@ export async function POST(req: Request) {
       await requireLicense(owner.subject);
     return response(
       await transaction((db) => {
-        if (body.action === "studio") {
+        if (body.action === "chartMeta") {
+          const client = db.clients.find(
+            (c) => c.id === body.id && c.ownerId === owner.id,
+          );
+          if (!client) throw new ProError("Not found", 404);
+          Object.assign(client, {
+            label: body.label,
+            tags: body.tags,
+            notes: body.notes,
+            updatedAt: Date.now(),
+          });
+        } else if (body.action === "studio") {
           db.accounts.find((a) => a.id === owner.id)!.studio = body.settings;
         } else if (body.action === "profile") {
           Object.assign(db.accounts.find((a) => a.id === owner.id)!, {

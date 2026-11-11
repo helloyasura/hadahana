@@ -430,6 +430,19 @@ try {
   await page
     .getByRole("button", { name: "ගෝචර ආවරණය ඉවත් කරන්න", exact: true })
     .click();
+  await page.getByLabel("Client chart label").fill("Synthetic Alpha");
+  await page.getByLabel("Client chart tags").fill("vedic, family");
+  await page
+    .getByLabel("Client chart notes")
+    .fill("Synthetic private client note");
+  await page.getByLabel("Consent to save client chart").check();
+  await page
+    .getByRole("button", { name: "සේවාලාභී සටහන සුරකින්න", exact: true })
+    .click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Chart saved privately" })
+    .waitFor();
   await page.getByLabel("නැකත් 27 / පාද 108", { exact: true }).uncheck();
   assert.equal(await page.locator(".studio-nak-label").count(), 0);
   await page.getByLabel("Sun", { exact: true }).uncheck();
@@ -467,6 +480,107 @@ try {
     }),
     400,
   );
+  await check(
+    await post(anon, "/charts", {
+      input: synthetic,
+      config: defaults,
+      label: "Denied",
+      tags: [],
+      notes: "",
+      consent: true,
+    }),
+    401,
+  );
+  await check(
+    await post(context, "/charts", {
+      input: synthetic,
+      config: defaults,
+      label: "Denied",
+      tags: [],
+      notes: "",
+      consent: false,
+    }),
+    400,
+  );
+  const beta = await check(
+    await post(context, "/charts", {
+      input: { ...synthetic, date: "2002-03-03" },
+      config: defaults,
+      label: "Synthetic Beta",
+      tags: ["work"],
+      notes: "Synthetic comparison note",
+      consent: true,
+    }),
+    200,
+  );
+  const archive = await check(
+    await context.request.get(`${api}/workspace`),
+    200,
+  );
+  const alpha = archive.clients.find((c) => c.label === "Synthetic Alpha");
+  assert.ok(alpha);
+  await check(
+    await other.request.get(`${api}/workspace?client=${alpha.id}`),
+    404,
+  );
+  await check(
+    await post(other, "/workspace", {
+      action: "chartMeta",
+      id: alpha.id,
+      label: "Intrusion",
+      tags: [],
+      notes: "",
+    }),
+    404,
+  );
+  await page.emulateMedia({ media: "screen" });
+  await page.goto(`${origin}${base}/pro/clients`);
+  await page.getByLabel("Search client charts").fill("Alpha vedic");
+  await page.getByText("Synthetic Alpha", { exact: true }).first().waitFor();
+  assert.equal(await page.locator(".pro-list li").count(), 1);
+  await page.getByLabel("Comparison chart A").selectOption(alpha.id);
+  await page.getByLabel("Comparison chart B").selectOption(beta.id);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll(".pro-client-comparison article").length === 2,
+  );
+  await page
+    .getByLabel("Edit client notes")
+    .fill("Updated private client note");
+  await page
+    .getByRole("button", {
+      name: "සේවාලාභී සටහන් යාවත්කාලීන කරන්න",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "සේවාලාභී සටහන් සුරැකුණි." })
+    .waitFor();
+  assert.equal(
+    (
+      await check(
+        await context.request.get(`${api}/workspace?client=${alpha.id}`),
+        200,
+      )
+    ).client.notes,
+    "Updated private client note",
+  );
+  for (const [width, size] of [
+    [1440, "desktop"],
+    [390, "mobile"],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
+    await page.screenshot({
+      path: path.join(shots, `pro-v2-client-comparison-${size}.png`),
+      fullPage: true,
+    });
+  }
   await page.emulateMedia({ media: "screen" });
   await page.goto(`${origin}${base}/pro/tools`);
   await page

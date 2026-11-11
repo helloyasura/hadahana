@@ -54,3 +54,20 @@ Depends on visual studio PR #21. No production environment or ephemeris change.
   Failed days can be skipped; requested/returned counts are shown. If the inherited
   muhurta engine lacks solar windows it may use its 06:00–18:00 weekday-eighth
   approximation; the UI discloses this and requires independent confirmation.
+
+## Private saved charts and comparison
+- `/pro/clients`: search Sinhala/English label, tags, notes and Lagna; newest
+  first; edit private labels/tags/notes; select two snapshots side by side.
+  Each snapshot shows its own recorded method, timezone and birth time so mixed
+  methods are never silently presented as equivalent. Charts are not recalculated
+  on viewing and historical presets remain immutable.
+- Studio save requires an explicit client-consent checkbox and an active Pro
+  entitlement; the server validates and recalculates from inputs, rather than
+  trusting posted planetary results. Metadata limits: 100-character label,
+  10 unique 30-character tags and 6,000-character notes. No automatic saving.
+- Existing encrypted Pro client storage, tenant checks, 90-day retention and
+  100-chart cap are reused. Old client records receive display-only defaults;
+  no bulk mutation of historical results. Existing export/delete remain available.
+- Per-client notes are separate from an astrologer's profile-level method notes.
+  Private metadata never enters public share-link responses. Client comparisons
+  are display tools, not relationship/outcome scores.
