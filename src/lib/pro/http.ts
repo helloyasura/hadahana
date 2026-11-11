@@ -22,15 +22,23 @@ export function response(data: unknown, status = 200) {
   return NextResponse.json(data, { status, headers: privateHeaders });
 }
 export function failure(e: unknown) {
-  return response(
+  const err = e instanceof ProError ? e : undefined;
+  const res = response(
     {
-      error:
-        e instanceof ProError
-          ? e.message
-          : "ඉල්ලීම සම්පූර්ණ කළ නොහැක. නැවත උත්සාහ කරන්න.",
+      error: err
+        ? err.message
+        : "ඉල්ලීම සම්පූර්ණ කළ නොහැක. නැවත උත්සාහ කරන්න.",
+      ...(err?.reason ? { reason: err.reason } : {}),
+      ...(err?.retryAfterSeconds != null
+        ? { retryAfterSeconds: err.retryAfterSeconds }
+        : {}),
+      ...(err?.limit != null ? { limit: err.limit } : {}),
     },
-    e instanceof ProError ? e.status : 400,
+    err ? err.status : 400,
   );
+  if (err?.retryAfterSeconds != null && err.retryAfterSeconds >= 0)
+    res.headers.set("Retry-After", String(err.retryAfterSeconds));
+  return res;
 }
 export function originGuard(req: Request) {
   let expected = process.env.PRO_PUBLIC_ORIGIN;

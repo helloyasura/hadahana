@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { isIP } from "node:net";
 import { ProError } from "./store";
+import {
+  GENERIC_CODE_WAIT,
+  parseProLimitFields,
+  proLimitMessage,
+} from "./limits";
 /** Real LUMS Pro HTTP client; never uses consumer /hadahana auth. See docs/JYOTISHA_PRO.md.
  * No local trial or verification bypass. Missing upstream endpoints fail closed.
  */
@@ -56,16 +61,27 @@ export async function proLums<T>(
         redirect: "error",
       },
     );
-    if (res.status === 429)
-      throw new ProError("නව කේතයක් ඉල්ලීමට පෙර රැඳී සිටින්න.", 429);
-    if (!res.ok)
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const details = parseProLimitFields(payload, res.headers.get("retry-after"));
+      if (res.status === 429)
+        throw new ProError(
+          details.reason || details.retryAfterSeconds != null
+            ? proLimitMessage(details)
+            : GENERIC_CODE_WAIT,
+          429,
+          details,
+        );
+      if (details.reason === "too_many_attempts")
+        throw new ProError(proLimitMessage(details), res.status, details);
       throw new ProError(
         res.status === 400 || res.status === 401
           ? "කේතය හෝ පිවිසුම් තොරතුරු වැරදියි."
           : "Pro LUMS සේවාව ලබාගත නොහැක.",
         res.status === 400 || res.status === 401 ? 401 : 503,
       );
-    return schema.parse(await res.json());
+    }
+    return schema.parse(payload);
   } catch (e) {
     if (e instanceof ProError) throw e;
     throw new ProError("Pro LUMS සේවාව ලබාගත නොහැක.", 503);
