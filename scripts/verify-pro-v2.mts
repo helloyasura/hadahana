@@ -107,3 +107,51 @@ assert.ok(
 console.log(
   "Transit solver: forward/wrap/retrograde brackets, range bounds, real-engine ingress bracket and node opposition passed.",
 );
+
+const { getPanchanga } = await import("../src/lib/astrology/panchanga");
+const { EphemerisService } = await import("vpv-panchangam");
+const { matchPorondam } = await import("../src/lib/astrology/porondam");
+const { scanEventDates } = await import("../src/lib/astrology/event-nakath");
+const { studioBirthSchema } = await import("../src/lib/pro/input");
+const input = {
+  date: "2000-01-01",
+  time: "12:00",
+  latitude: 6.9271,
+  longitude: 79.8612,
+  timezone: "Asia/Colombo",
+};
+const pan = await getPanchanga(input);
+EphemerisService.getInstance().setAyanamsa("raman");
+assert.deepEqual(
+  await getPanchanga(input),
+  pan,
+  "Panchanga must not inherit another chart's ayanamsa",
+);
+assert.ok(pan.inauspiciousLocal.rahuKalaya?.start);
+assert.equal(pan.timezone, input.timezone);
+assert.equal(
+  studioBirthSchema.safeParse({ ...input, date: "2000-02-31" }).success,
+  false,
+);
+assert.equal(
+  studioBirthSchema.safeParse({ ...input, time: "25:00" }).success,
+  false,
+);
+const match = await matchPorondam(input, { ...input, date: "2001-02-02" });
+assert.equal(match.points.length, 10);
+assert.ok(match.notes.some((n) => n.includes("screening")));
+const days = await scanEventDates({
+  birth: input,
+  eventId: "naming",
+  fromDate: "2000-01-01",
+  toDate: "2000-01-03",
+  limit: 31,
+});
+assert.equal(days.scannedDays, 3);
+assert.ok(days.dates.length > 0 && days.dates.length <= 3);
+assert.ok(
+  days.dates.every((d) => d.date >= "2000-01-01" && d.date <= "2000-01-03"),
+);
+console.log(
+  "Consultation engines: almanac state isolation, civil validation, inherited matching warnings and bounded nakath shortlist passed.",
+);

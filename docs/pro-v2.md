@@ -34,3 +34,23 @@ Depends on visual studio PR #21. No production environment or ephemeris change.
 - Solver tests include independent synthetic forward/retrograde functions and
   real ephemeris positions on both sides of a calculated Sun ingress. These test
   the solver, not independent astronomical calibration of the inherited engine.
+
+## Integrated consultation tools
+- `/pro/tools` is separately protected and uses the existing Sri Lankan/Lahiri
+  daily/matching engines, **not the studio preset**. This fixed convention is
+  displayed before inputs/results. Input/result data is ephemeral, no consumer
+  login is required in addition to the Pro session, and no real email is sent.
+- Panchanga: civil date, coordinates and IANA zone; sunrise-day tithi/vara,
+  nakshatra/yoga/karana, sunrise/sunset and Rahu/Yamaganda/Gulika. Unsupported polar
+  windows are not silently fabricated by the Panchanga view. Explicitly reset
+  the engine to Lahiri to avoid inheriting a preceding chart's Raman/KP setting.
+- Porondam: reuse existing preliminary rules. Rajju and Vedha placeholders are
+  excluded from Pro results; the incomplete engine's percent/10-point aggregate
+  is deliberately not displayed. Several other rules are simplified, prominently
+  disclosed, not a full classical 10/20-porondam verdict or marriage advice.
+- Nakath/muhurta: 1–31 inclusive days and an existing event category; returns a
+  ranked **day shortlist**, not final auspicious clock times. Existing inherited
+  rules/caveats are in `event-categories.ts`, `event-nakath.ts`, `muhurta.ts`.
+  Failed days can be skipped; requested/returned counts are shown. If the inherited
+  muhurta engine lacks solar windows it may use its 06:00–18:00 weekday-eighth
+  approximation; the UI discloses this and requires independent confirmation.

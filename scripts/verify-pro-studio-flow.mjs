@@ -453,6 +453,57 @@ try {
     printBackground: true,
   });
   assert.deepEqual(errors, []);
+  await check(
+    await post(anon, "/tools", { action: "panchanga", input: synthetic }),
+    401,
+  );
+  await check(
+    await post(context, "/tools", {
+      action: "nakath",
+      birth: synthetic,
+      fromDate: "2000-01-01",
+      toDate: "2000-03-01",
+      eventId: "naming",
+    }),
+    400,
+  );
+  await page.emulateMedia({ media: "screen" });
+  await page.goto(`${origin}${base}/pro/tools`);
+  await page
+    .getByRole("button", { name: "ගණනය කරන්න / Calculate", exact: true })
+    .click();
+  await page.locator(".pro-tool-result").waitFor();
+  assert.ok(
+    (await page.locator(".pro-tool-result").innerText()).includes(
+      "Asia/Colombo",
+    ),
+  );
+  for (const [tab, label] of [
+    ["පංචාංගය", "panchanga"],
+    ["පොරොන්දම්", "matching"],
+    ["නැකත් දින සොයන්න", "nakath"],
+  ]) {
+    await page.getByRole("button", { name: tab, exact: true }).click();
+    await page
+      .getByRole("button", { name: "ගණනය කරන්න / Calculate", exact: true })
+      .click();
+    await page.locator(".pro-tool-result").waitFor();
+    for (const [width, size] of [
+      [1440, "desktop"],
+      [390, "mobile"],
+    ]) {
+      await page.setViewportSize({ width, height: 1000 });
+      assert.ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      );
+      await page.screenshot({
+        path: path.join(shots, `pro-v2-${label}-${size}.png`),
+        fullPage: true,
+      });
+    }
+  }
   expired.add(subjectFor("pilot-a@example.test"));
   await check(
     await post(context, "/studio", { input: synthetic, config: defaults }),
