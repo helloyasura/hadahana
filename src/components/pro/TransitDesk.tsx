@@ -8,6 +8,7 @@ import {
   studioHouse,
   type StudioBody,
 } from "@/lib/pro/studio";
+import type { TransitState } from "@/lib/pro/cases";
 import { errorMessage, proRequest } from "./client";
 export type TransitOverlay = {
   natal: ProChartResult;
@@ -20,23 +21,86 @@ export default function TransitDesk({
   ready,
   config,
   onOverlay,
+  initialState,
+  onState,
 }: {
   result?: ProChartResult;
   ready: boolean;
   config: CalculationConfig;
   onOverlay: (overlay: TransitOverlay | null) => void;
+  initialState?: TransitState;
+  onState?: (state: TransitState) => void;
 }) {
   const [natal, setNatal] = useState<ProChartResult>(),
-    [instant, setInstant] = useState(() =>
-      new Date().toISOString().slice(0, 16),
+    [instant, setInstant] = useState(
+      () => initialState?.instant ?? new Date().toISOString().slice(0, 16),
     ),
     [overlay, setOverlay] = useState<TransitOverlay>(),
-    [planet, setPlanet] = useState("Jupiter"),
-    [target, setTarget] = useState(0),
-    [days, setDays] = useState(90),
+    [planet, setPlanet] = useState(initialState?.planet ?? "Jupiter"),
+    [target, setTarget] = useState(initialState?.target ?? 0),
+    [days, setDays] = useState(initialState?.days ?? 90),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
   const generation = useRef(0);
+  useEffect(() => {
+    if (!initialState?.natal) return;
+    let cancelled = false;
+    setBusy(true);
+    proRequest<{ result: ProChartResult }>("/studio", {
+      input: initialState.natal,
+      config,
+    })
+      .then(async (r) => {
+        if (cancelled) return;
+        setNatal(r.result);
+        if (initialState.active) {
+          const sky = await proRequest<{
+            bodies: StudioBody[];
+            instant: string;
+          }>("/transits", {
+            action: "sky",
+            instant:
+              initialState.shownInstant ??
+              new Date(`${initialState.instant}:00Z`).toISOString(),
+            config,
+          });
+          if (cancelled) return;
+          const restored = { ...sky, natal: r.result, calculation: config };
+          setOverlay(restored);
+          onOverlay(restored);
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) setMessage(errorMessage(e));
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialState, config, onOverlay]);
+  useEffect(() => {
+    onState?.({
+      instant,
+      planet,
+      target,
+      days,
+      active: !!overlay,
+      ...(overlay ? { shownInstant: overlay.instant } : {}),
+      ...(natal
+        ? {
+            natal: {
+              date: natal.native.date,
+              time: natal.native.timeLocal.slice(0, 5),
+              latitude: natal.native.latitude,
+              longitude: natal.native.longitude,
+              timezone: natal.native.timezone,
+            },
+          }
+        : {}),
+    });
+  }, [instant, planet, target, days, overlay, natal, onState]);
   useEffect(
     () => () => {
       generation.current++;

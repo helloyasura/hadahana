@@ -53,7 +53,7 @@ export function originGuard(req: Request) {
   )
     throw new ProError("Invalid request origin", 403);
 }
-export async function jsonBody(req: Request) {
+export async function jsonBody(req: Request, maxBytes = 40000) {
   originGuard(req);
   // Bound actual streamed bytes too; Content-Length alone can be absent/forged.
   if (!req.body) throw new ProError("Empty request");
@@ -64,7 +64,7 @@ export async function jsonBody(req: Request) {
     const { done, value } = await reader.read();
     if (done) break;
     total += value.length;
-    if (total > 40000) {
+    if (total > maxBytes) {
       await reader.cancel();
       throw new ProError("Request too large", 413);
     }

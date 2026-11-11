@@ -91,7 +91,12 @@ jobs:
                 await page.evaluate(() => document.fonts.ready);
                 const pdf = await page.pdf({preferCSSPageSize:true});
                 assert.equal(pdf.subarray(0,5).toString(), "%PDF-");
-                console.log("Non-root, offline, capped Chromium/Sinhala PDF passed:", pdf.length, "bytes");
+                const fs = require("node:fs");
+                fs.writeFileSync("/tmp/case-document.pdf", pdf);
+                execFileSync("/bin/sh", ["-c", "ulimit -v 262144; exec \"$@\"", "pdf-limit", "pdftoppm", "-f", "1", "-l", "1", "-scale-to", "800", "-png", "-singlefile", "/tmp/case-document.pdf", "/tmp/case-page"], {timeout:8000});
+                assert.equal(fs.readFileSync("/tmp/case-page.png").subarray(1,4).toString(), "PNG");
+                assert.equal((await require("sharp")(fs.readFileSync("/tmp/case-page.png")).metadata()).format, "png");
+                console.log("Non-root, offline, capped Chromium/Sinhala PDF and Poppler/Sharp case preview passed:", pdf.length, "bytes");
               } finally { await browser.close(); }
             })().catch(error => {console.error(error);process.exitCode=1;});'
       - name: Production Compose startup and root-owned feedback volume migration smoke
@@ -144,6 +149,10 @@ jobs:
         run: npm run test:panchanga
       - name: Mock-LUMS browser and security regression
         run: npm run test:panchanga:ui
+      - name: Synthetic cases / consented documents / reviewed reports
+        env:
+          PRO_CASES_SHOTS_DIR: /tmp/panchanga-artifacts
+        run: npm run test:pro:cases:ui
       - uses: actions/upload-artifact@v4
         if: always()
         with:

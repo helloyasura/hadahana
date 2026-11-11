@@ -539,6 +539,9 @@ try {
   await page.goto(`${origin}${base}/pro/clients`);
   await page.getByLabel("Search client charts").fill("Alpha vedic");
   await page.getByText("Synthetic Alpha", { exact: true }).first().waitFor();
+  await page.waitForFunction(
+    () => document.querySelectorAll(".pro-list li").length === 1,
+  );
   assert.equal(await page.locator(".pro-list li").count(), 1);
   await page.getByLabel("Comparison chart A").selectOption(alpha.id);
   await page.getByLabel("Comparison chart B").selectOption(beta.id);

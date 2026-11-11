@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { z } from "zod";
 import type { studioBirthSchema } from "@/lib/pro/input";
 import type { getPanchanga } from "@/lib/astrology/panchanga";
@@ -8,6 +8,7 @@ import type { scanEventDates } from "@/lib/astrology/event-nakath";
 import { EVENT_CATEGORIES } from "@/lib/astrology/event-categories";
 import { panchangaRows } from "@/lib/astrology/panchanga-view";
 import Shell from "./Shell";
+import type { ConsultationState } from "@/lib/pro/cases";
 import { errorMessage, proRequest } from "./client";
 type Birth = z.infer<typeof studioBirthSchema>;
 const initial: Birth = {
@@ -61,13 +62,38 @@ export function BirthFields({
     </div>
   );
 }
-export default function ConsultationDesk() {
-  const [tab, setTab] = useState<"panchanga" | "match" | "nakath">("panchanga"),
-    [a, setA] = useState<Birth>(initial),
-    [b, setB] = useState<Birth>({ ...initial, date: "2001-02-02" }),
-    [from, setFrom] = useState("2000-01-01"),
-    [to, setTo] = useState("2000-01-07"),
-    [event, setEvent] = useState("naming"),
+function Frame({
+  embedded,
+  children,
+}: {
+  embedded: boolean;
+  children: React.ReactNode;
+}) {
+  return embedded ? (
+    <div>{children}</div>
+  ) : (
+    <Shell active="tools">{children}</Shell>
+  );
+}
+export default function ConsultationDesk({
+  embedded = false,
+  initialState,
+  onState,
+}: {
+  embedded?: boolean;
+  initialState?: ConsultationState;
+  onState?: (state: ConsultationState) => void;
+}) {
+  const [tab, setTab] = useState<"panchanga" | "match" | "nakath">(
+      initialState?.tab ?? "panchanga",
+    ),
+    [a, setA] = useState<Birth>(initialState?.a ?? initial),
+    [b, setB] = useState<Birth>(
+      initialState?.b ?? { ...initial, date: "2001-02-02" },
+    ),
+    [from, setFrom] = useState(initialState?.from ?? "2000-01-01"),
+    [to, setTo] = useState(initialState?.to ?? "2000-01-07"),
+    [event, setEvent] = useState(initialState?.event ?? "naming"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [pan, setPan] = useState<Awaited<ReturnType<typeof getPanchanga>>>(),
@@ -75,6 +101,9 @@ export default function ConsultationDesk() {
       useState<Awaited<ReturnType<typeof matchPorondam>>>(),
     [nakath, setNakath] =
       useState<Awaited<ReturnType<typeof scanEventDates>>>();
+  useEffect(() => {
+    onState?.({ tab, a, b, from, to, event });
+  }, [tab, a, b, from, to, event, onState]);
   async function run() {
     setBusy(true);
     setError("");
@@ -111,13 +140,15 @@ export default function ConsultationDesk() {
   }
   const rows = pan ? panchangaRows(pan, "si") : null;
   return (
-    <Shell active="tools">
+    <Frame embedded={embedded}>
       <div className="pro-page-title">
         <div>
           <p className="pro-eyebrow">CONSULTATION TOOLKIT</p>
           <h1>පංචාංග · පොරොන්දම් · නැකත්</h1>
           <p className="pro-muted">
-            පුද්ගලික Pro වැඩබිම · මෙහි ඇතුළත් දත්ත සුරැකෙන්නේ නැත.
+            {embedded
+              ? "මෙම නඩුවට අදාළ දත්ත · Save case state මඟින් සුරකින්න."
+              : "පුද්ගලික Pro වැඩබිම · මෙහි ඇතුළත් දත්ත සුරැකෙන්නේ නැත."}
           </p>
         </div>
       </div>
@@ -323,6 +354,6 @@ export default function ConsultationDesk() {
           </div>
         </section>
       )}
-    </Shell>
+    </Frame>
   );
 }

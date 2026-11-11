@@ -129,6 +129,7 @@ export default function ClientArchive() {
                   {c.tags.join(" · ")} · {c.lagna} · {localDate(c.createdAt)}
                 </small>
               </div>
+              <a href={withBasePath(`/pro/cases?id=${c.id}`)}>විමර්ශනය දිගටම →</a>
               <button className="pro-secondary" onClick={() => setFirst(c.id)}>
                 විවෘත කරන්න
               </button>
