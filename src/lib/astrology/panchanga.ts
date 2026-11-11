@@ -1,4 +1,4 @@
-import { computeDetailedPanchang } from "vpv-panchangam";
+import { EphemerisService, computeDetailedPanchang } from "vpv-panchangam";
 import { resolvePlace } from "./places";
 
 function localHm(iso: string | null | undefined, timeZone: string): string | null {
@@ -24,6 +24,11 @@ export async function getPanchanga(input: {
   timezone?: string;
 }) {
   const place = resolvePlace(input);
+  // Detailed Panchanga has no ayanamsa argument. Reset explicitly rather than
+  // inherit another chart request's singleton setting. This API is Lahiri.
+  const ephe = EphemerisService.getInstance();
+  await ephe.init();
+  ephe.setAyanamsa("lahiri");
   const raw = await computeDetailedPanchang(
     input.date,
     place.latitude,

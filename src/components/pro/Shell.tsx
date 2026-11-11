@@ -29,6 +29,7 @@ export default function Shell({
             ["studio", "දෘශ්‍ය වැඩබිම", "/pro/studio"],
             ["presets", "ගණනය කිරීමේ ක්‍රම", "/pro/presets"],
             ["links", "සබැඳි", "/pro/links"],
+            ["tools", "යොමු මෙවලම්", "/pro/tools"],
           ].map(([key, label, url]) => (
             <a
               key={key}
