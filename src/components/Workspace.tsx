@@ -28,7 +28,7 @@ import {
   placePayload,
   type PlaceFormValue,
 } from "@/components/PlaceFields";
-import { apiUrl } from "@/lib/base-path";
+import { apiUrl, withBasePath } from "@/lib/base-path";
 
 type Tab =
   | "chart"
@@ -283,7 +283,7 @@ export function Workspace() {
       data-motion={motionPaused ? "paused" : "playing"}
     >
       <RevealObserver />
-      <div className="profile-shortcuts no-print"><button className="ghost" type="button" onClick={() => { setAccountOpen(!accountOpen); window.setTimeout(() => document.getElementById("account-panel")?.scrollIntoView({ behavior: "smooth" }), 50); }}>{profile ? (lang === "si" ? "මගේ පැතිකඩ" : "My profile") : (lang === "si" ? "ලියාපදිංචිය / ඇතුළු වීම" : "Sign in / create profile")} ↗</button><a href={apiUrl("/profile")}>{lang === "si" ? "පැතිකඩ පිටුව" : "Profile page"}</a></div>
+      <div className="profile-shortcuts no-print"><button className="ghost" type="button" onClick={() => { setAccountOpen(!accountOpen); window.setTimeout(() => document.getElementById("account-panel")?.scrollIntoView({ behavior: "smooth" }), 50); }}>{profile ? (lang === "si" ? "මගේ පැතිකඩ" : "My profile") : (lang === "si" ? "ලියාපදිංචිය / ඇතුළු වීම" : "Sign in / create profile")} ↗</button>{profile && <a href={withBasePath("/profile")}>{lang === "si" ? "පැතිකඩ පිටුව" : "Profile page"}</a>}</div>
       <a className="skip-link" href="#birth-details">
         {lang === "si" ? "උපන් විස්තර වෙත" : "Skip to birth details"}
       </a>
