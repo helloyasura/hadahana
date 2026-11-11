@@ -63,3 +63,47 @@ assert.ok(
 console.log(
   "Pro v2: hierarchical dasha anchoring, clipping, boundaries, proportional durations, both year conventions and full-precision D9 passed.",
 );
+
+const { findIngress, ephemerisSampler, skyAt } = await import(
+  "../src/lib/pro/transits"
+);
+const { DEFAULT_CALCULATION_CONFIG } = await import(
+  "../src/lib/astrology/config"
+);
+const hour = 3600000;
+const direct = (t: number) => ({
+  longitude: (((359 + t / hour) % 360) + 360) % 360,
+  speed: 24,
+});
+assert.equal(findIngress(direct, 0, 2 * hour, 0)!.toSign, 0);
+assert.ok(Date.parse(findIngress(direct, 0, 2 * hour, 0)!.instant) >= hour);
+const retro = (t: number) => ({
+  longitude: (((31 - t / hour) % 360) + 360) % 360,
+  speed: -24,
+});
+assert.equal(findIngress(retro, 0, 2 * hour, 0)!.retrograde, true);
+assert.equal(findIngress(direct, 0, hour / 2, 2), null);
+assert.throws(() => findIngress(direct, 0, 367 * 86400000, 0));
+const sampler = await ephemerisSampler(
+  { ...DEFAULT_CALCULATION_CONFIG },
+  "Sun",
+);
+const from = Date.parse("2000-01-01T00:00:00Z"),
+  entry = findIngress(sampler, from, from + 40 * 86400000, 9)!;
+assert.ok(entry);
+const t = Date.parse(entry.instant);
+assert.equal(Math.floor(sampler(t + 2000).longitude / 30), 9);
+assert.notEqual(Math.floor(sampler(t - 2000).longitude / 30), 9);
+const sky = await skyAt(from, { ...DEFAULT_CALCULATION_CONFIG });
+assert.equal(sky.length, 9);
+assert.ok(
+  Math.abs(
+    Math.abs(
+      sky.find((p) => p.name === "Rahu")!.longitude -
+        sky.find((p) => p.name === "Ketu")!.longitude,
+    ) - 180,
+  ) < 1e-9,
+);
+console.log(
+  "Transit solver: forward/wrap/retrograde brackets, range bounds, real-engine ingress bracket and node opposition passed.",
+);

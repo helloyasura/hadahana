@@ -200,6 +200,25 @@ try {
     }),
     400,
   );
+  await check(
+    await post(anon, "/transits", {
+      action: "sky",
+      instant: "2000-01-01T00:00:00Z",
+      config: defaults,
+    }),
+    401,
+  );
+  await check(
+    await post(context, "/transits", {
+      action: "ingress",
+      from: "2000-01-01T00:00:00Z",
+      to: "2002-01-01T00:00:00Z",
+      planet: "Sun",
+      target: 9,
+      config: defaults,
+    }),
+    400,
+  );
   const calculated = await check(
     await post(context, "/studio", { input: synthetic, config: defaults }),
     200,
@@ -235,7 +254,12 @@ try {
   );
   assert.equal(await page.locator(".studio-planet").count(), 10);
   assert.equal(await page.locator(".studio-nak-label").count(), 27);
-  assert.equal(await page.locator(".studio-worksheet:not(.studio-dasha-browser) tbody tr").count(), 10);
+  assert.equal(
+    await page
+      .locator(".studio-worksheet:not(.studio-dasha-browser) tbody tr")
+      .count(),
+    10,
+  );
   await page.getByRole("button", { name: /Live/ }).click();
   await page.getByLabel("දිනය / Date", { exact: true }).fill("2000-01-01");
   await page.getByLabel("වේලාව / Time", { exact: true }).fill("12:00");
@@ -363,13 +387,49 @@ try {
     await page.keyboard.press("Escape");
     assert.equal(await page.getByRole("dialog").count(), 0);
     await page.getByLabel("Dasha date jump").fill("2001-01-01");
-    assert.equal(await page.locator(".studio-dasha-browser tbody .studio-row-selected").count(), 1);
-    await page.locator(".studio-dasha-browser").screenshot({path:path.join(shots,`pro-v2-dasha-${label}.png`)});
+    assert.equal(
+      await page
+        .locator(".studio-dasha-browser tbody .studio-row-selected")
+        .count(),
+      1,
+    );
+    await page
+      .locator(".studio-dasha-browser")
+      .screenshot({ path: path.join(shots, `pro-v2-dasha-${label}.png`) });
   }
   await page
     .getByRole("button", { name: "◎ රාශි චක්‍රය", exact: true })
     .click();
   await page.getByLabel("Divisional chart", { exact: true }).selectOption("1");
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".studio-canvas")?.getAttribute("aria-busy") ===
+      "false",
+  );
+  await page
+    .getByRole("button", { name: "මෙම සටහන ජන්ම ලෙස රඳවන්න", exact: true })
+    .click();
+  await page.getByLabel("Transit UTC instant").fill("2000-02-01T06:30");
+  await page
+    .getByRole("button", { name: "ගෝචරය පෙන්වන්න", exact: true })
+    .click();
+  await page.locator(".studio-transit-marker").first().waitFor();
+  assert.equal(await page.locator(".studio-transit-marker").count(), 9);
+  for (const [width, label] of [
+    [1440, "desktop"],
+    [390, "mobile"],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page
+      .locator(".studio-canvas")
+      .screenshot({ path: path.join(shots, `pro-v2-transits-${label}.png`) });
+    await page
+      .locator(".studio-transit-desk")
+      .screenshot({ path: path.join(shots, `pro-v2-ingress-${label}.png`) });
+  }
+  await page
+    .getByRole("button", { name: "ගෝචර ආවරණය ඉවත් කරන්න", exact: true })
+    .click();
   await page.getByLabel("නැකත් 27 / පාද 108", { exact: true }).uncheck();
   assert.equal(await page.locator(".studio-nak-label").count(), 0);
   await page.getByLabel("Sun", { exact: true }).uncheck();

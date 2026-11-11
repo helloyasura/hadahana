@@ -21,6 +21,7 @@ import Shell from "./Shell";
 import StudioWheel, { bodyDescription } from "./StudioWheel";
 import StudioReference from "./StudioReference";
 import DashaBrowser from "./DashaBrowser";
+import TransitDesk, { type TransitOverlay } from "./TransitDesk";
 
 export function zonedClock(ms: number, timezone: string) {
   const p = Object.fromEntries(
@@ -49,12 +50,14 @@ export default function Studio() {
   const [resultConfig, setResultConfig] = useState<CalculationConfig>(
     defaults.calculation,
   );
-  const [result, setResult] = useState<ProChartResult>(),
+  const [overlay, setOverlay] = useState<TransitOverlay | null>(null);
+  const [workingResult, setResult] = useState<ProChartResult>(),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false),
     [saving, setSaving] = useState(false),
     [revision, setRevision] = useState(0);
+  const result = overlay?.natal ?? workingResult;
   const [live, setLive] = useState(true),
     [now, setNow] = useState(() => Date.now()),
     [offset, setOffset] = useState(0),
@@ -125,6 +128,9 @@ export default function Studio() {
     }
   }, [live, now, offset, birth, location.timezone]);
   const calculationKey = JSON.stringify(settings.calculation);
+  useEffect(() => {
+    setOverlay(null);
+  }, [calculationKey]);
   useEffect(() => {
     if (!loaded) return;
     let cancelled = false;
@@ -222,7 +228,7 @@ export default function Studio() {
           name: "Lagna",
           label: "ලග්නය",
           longitude: divisionalLongitude(
-            result.lagna.longitude,
+            result.lagna.longitudeExact ?? result.lagna.longitude,
             settings.division,
           ),
           retrograde: false,
@@ -448,7 +454,7 @@ export default function Studio() {
                 <span role="status" className="pro-pill">
                   {pending
                     ? "ගණනය වෙමින්…"
-                    : `D${settings.division} · ${settings.calculation.ayanamsa}`}
+                    : `D${settings.division} · ${(overlay?.calculation ?? settings.calculation).ayanamsa}`}
                 </span>
               </div>
               {pending && result && (
@@ -487,6 +493,15 @@ export default function Studio() {
                     {settings.layout === "wheel" ? (
                       <StudioWheel
                         bodies={bodies}
+                        transits={
+                          settings.division === 1
+                            ? overlay?.bodies.filter((b) =>
+                                settings.bodies.includes(
+                                  b.name as (typeof BODIES)[number],
+                                ),
+                              )
+                            : undefined
+                        }
                         asc={asc}
                         settings={settings}
                         selected={selected}
@@ -746,8 +761,9 @@ export default function Studio() {
                 {result.native.date} {result.native.timeLocal} ·{" "}
                 {result.native.timezone} · {result.native.latitude},{" "}
                 {result.native.longitude} · {result.tradition.ayanamsa}{" "}
-                {result.tradition.ayanamsaDegrees}° · {resultConfig.nodes} nodes
-                · {settings.houses} houses · Vimshottari{" "}
+                {result.tradition.ayanamsaDegrees}° ·{" "}
+                {(overlay?.calculation ?? resultConfig).nodes} nodes ·{" "}
+                {settings.houses} houses · Vimshottari{" "}
                 {result.vimshottari.convention.yearDays}d
               </p>
               <p className="pro-small">
@@ -820,6 +836,15 @@ export default function Studio() {
             </section>
           )}
         </>
+      )}
+      {loaded && (
+        <TransitDesk
+          key={calculationKey}
+          result={workingResult}
+          ready={!pending && !error}
+          config={settings.calculation}
+          onOverlay={setOverlay}
+        />
       )}
       {result && (
         <DashaBrowser
