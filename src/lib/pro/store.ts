@@ -7,6 +7,7 @@ import {
 } from "node:crypto";
 import { mkdir, readFile, writeFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
+import { initialCase, type CaseFile, type CaseService } from "./cases";
 import { studioSettingsSchema, type StudioSettings } from "./studio";
 import type { CalculationConfig } from "../astrology/config";
 import type { BirthInput, castKendraya } from "../astrology/kendraya";
@@ -19,6 +20,7 @@ export type ProAccount = {
   qualifications: string;
   contact: string;
   logo: string;
+  services?: CaseService[];
   studio?: StudioSettings;
   createdAt: number;
 };
@@ -44,6 +46,11 @@ export type ShareLink = {
   createdAt: number;
 };
 export type Client = {
+  case?: CaseFile;
+  label?: string;
+  tags?: string[];
+  notes?: string;
+  updatedAt?: number;
   id: string;
   ownerId: string;
   linkId: string;
@@ -177,6 +184,7 @@ export async function transaction<T>(
     db.challenges = db.challenges.filter((s) => s.expiresAt > now);
     db.rates = db.rates.filter((s) => s.expiresAt > now);
     db.clients = db.clients.filter((c) => c.createdAt > now - 90 * 86400000);
+    for (const client of db.clients) client.case ??= initialCase(client);
     const result = await fn(db);
     const data = Buffer.from(JSON.stringify(db));
     if (data.length > 15 * 1024 * 1024)

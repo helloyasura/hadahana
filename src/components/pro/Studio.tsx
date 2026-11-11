@@ -18,8 +18,17 @@ import type { ProChartResult } from "./Chart";
 import { SouthIndianChart } from "@/components/SouthIndianChart";
 import { errorMessage, proRequest } from "./client";
 import Shell from "./Shell";
+import {
+  caseStudioSchema,
+  shiftCivilClock,
+  type CaseStudioState,
+} from "@/lib/pro/cases";
 import StudioWheel, { bodyDescription } from "./StudioWheel";
 import StudioReference from "./StudioReference";
+import DashaBrowser from "./DashaBrowser";
+import SaveChart from "./SaveChart";
+import YogaDesk from "./YogaDesk";
+import TransitDesk, { type TransitOverlay } from "./TransitDesk";
 
 export function zonedClock(ms: number, timezone: string) {
   const p = Object.fromEntries(
@@ -41,30 +50,65 @@ export function zonedClock(ms: number, timezone: string) {
   };
 }
 const defaults = studioSettingsSchema.parse({});
-export default function Studio() {
-  const [settings, setSettings] = useState<StudioSettings>(defaults);
+function Frame({
+  embedded,
+  children,
+}: {
+  embedded: boolean;
+  children: React.ReactNode;
+}) {
+  return embedded ? (
+    <div className="pro-case-studio">{children}</div>
+  ) : (
+    <Shell active="studio">{children}</Shell>
+  );
+}
+export default function Studio({
+  embedded = false,
+  initialState,
+  onState,
+}: {
+  embedded?: boolean;
+  initialState?: CaseStudioState;
+  onState?: (
+    state: CaseStudioState,
+    result: ProChartResult | undefined,
+    transits: StudioBody[],
+  ) => void;
+}) {
+  const [settings, setSettings] = useState<StudioSettings>(
+    initialState?.settings ?? defaults,
+  );
   const [loaded, setLoaded] = useState(false),
     [presets, setPresets] = useState<Preset[]>([]);
   const [resultConfig, setResultConfig] = useState<CalculationConfig>(
     defaults.calculation,
   );
-  const [result, setResult] = useState<ProChartResult>(),
+  const [dashaState, setDashaState] = useState(initialState?.dasha);
+  const [transitState, setTransitState] = useState(initialState?.transit);
+  const [computedKey, setComputedKey] = useState("");
+  const [overlay, setOverlay] = useState<TransitOverlay | null>(null);
+  const [workingResult, setResult] = useState<ProChartResult>(),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const [pending, setPending] = useState(false),
     [saving, setSaving] = useState(false),
     [revision, setRevision] = useState(0);
-  const [live, setLive] = useState(true),
+  const result = overlay?.natal ?? workingResult;
+  const [live, setLive] = useState(!initialState),
     [now, setNow] = useState(() => Date.now()),
     [offset, setOffset] = useState(0),
     [playing, setPlaying] = useState(false);
-  const [birth, setBirth] = useState({ date: "2000-01-01", time: "12:00" });
-  const [location, setLocation] = useState({
-    latitude: "6.9271",
-    longitude: "79.8612",
-    timezone: "Asia/Colombo",
+  const [birth, setBirth] = useState({
+    date: initialState?.input.date ?? "2000-01-01",
+    time: initialState?.input.time ?? "12:00",
   });
-  const [selected, setSelected] = useState("Moon"),
+  const [location, setLocation] = useState({
+    latitude: String(initialState?.input.latitude ?? 6.9271),
+    longitude: String(initialState?.input.longitude ?? 79.8612),
+    timezone: initialState?.input.timezone ?? "Asia/Colombo",
+  });
+  const [selected, setSelected] = useState(initialState?.selected ?? "Moon"),
     [name, setName] = useState("මගේ දෘශ්‍ය ක්‍රමය");
   const [referenceOpen, setReferenceOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -73,7 +117,10 @@ export default function Studio() {
     proRequest<{ studio: StudioSettings; presets: Preset[] }>("/workspace")
       .then((d) => {
         if (!cancelled) {
-          setSettings(studioSettingsSchema.parse(d.studio ?? {}));
+          setSettings(
+            initialState?.settings ??
+              studioSettingsSchema.parse(d.studio ?? {}),
+          );
           setPresets(d.presets);
           setLoaded(true);
         }
@@ -84,7 +131,7 @@ export default function Studio() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialState]);
   useEffect(() => {
     if (!live) return;
     const t = setInterval(() => setNow(Date.now()), 60000);
@@ -93,11 +140,20 @@ export default function Studio() {
   useEffect(() => {
     if (!playing) return;
     const t = setInterval(
-      () => setOffset((v) => (v >= 720 ? -720 : v + 6)),
+      () =>
+        setOffset((v) =>
+          embedded && !live
+            ? v >= 2
+              ? -2
+              : v + 1 / 60
+            : v >= 720
+              ? -720
+              : v + 6,
+        ),
       6000,
     );
     return () => clearInterval(t);
-  }, [playing]);
+  }, [playing, embedded, live]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -113,17 +169,51 @@ export default function Studio() {
   const clock = useMemo(() => {
     try {
       if (live) return zonedClock(now + offset * 3600000, location.timezone);
-      const d = new Date(`${birth.date}T${birth.time}:00Z`);
-      d.setUTCHours(d.getUTCHours() + offset);
-      return {
-        date: d.toISOString().slice(0, 10),
-        time: d.toISOString().slice(11, 16),
-      };
+      return shiftCivilClock(birth, offset);
     } catch {
       return null;
     }
   }, [live, now, offset, birth, location.timezone]);
   const calculationKey = JSON.stringify(settings.calculation);
+  const requestedKey = JSON.stringify({ clock, location, calculationKey });
+  useEffect(() => {
+    const parsed = caseStudioSchema.safeParse({
+      input: {
+        ...clock,
+        latitude: Number(location.latitude),
+        longitude: Number(location.longitude),
+        timezone: location.timezone,
+      },
+      settings,
+      selected,
+      dasha: dashaState,
+      transit: transitState,
+    });
+    if (loaded && parsed.success)
+      onState?.(
+        parsed.data,
+        computedKey === requestedKey && !pending && !error ? result : undefined,
+        overlay?.bodies ?? [],
+      );
+  }, [
+    loaded,
+    clock,
+    location,
+    settings,
+    selected,
+    dashaState,
+    transitState,
+    onState,
+    result,
+    pending,
+    error,
+    computedKey,
+    requestedKey,
+    overlay,
+  ]);
+  useEffect(() => {
+    setOverlay(null);
+  }, [calculationKey]);
   useEffect(() => {
     if (!loaded) return;
     let cancelled = false;
@@ -146,6 +236,7 @@ export default function Studio() {
         });
         if (!cancelled) {
           setResult(r.result);
+          setComputedKey(requestedKey);
           setResultConfig(JSON.parse(calculationKey));
           setRevision((v) => v + 1);
         }
@@ -162,7 +253,7 @@ export default function Studio() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [loaded, clock, location, calculationKey]);
+  }, [loaded, clock, location, calculationKey, requestedKey]);
   function change<K extends keyof StudioSettings>(
     key: K,
     value: StudioSettings[K],
@@ -210,7 +301,10 @@ export default function Studio() {
         ...result.navagraha.map((p) => ({
           name: p.graha,
           label: p.grahaSinhala,
-          longitude: divisionalLongitude(p.longitude, settings.division),
+          longitude: divisionalLongitude(
+            p.longitudeExact ?? p.longitude,
+            settings.division,
+          ),
           retrograde: p.retrograde,
           dignity: `${p.exalted ? "උච්ච / Exalted" : p.debilitated ? "නීච / Debilitated" : p.ownSign ? "ස්වක්ෂේත්‍ර / Own sign" : "සාමාන්‍ය / Other"}${p.combust ? " · අස්ත / Combust" : ""} (D1)`,
         })),
@@ -218,7 +312,7 @@ export default function Studio() {
           name: "Lagna",
           label: "ලග්නය",
           longitude: divisionalLongitude(
-            result.lagna.longitude,
+            result.lagna.longitudeExact ?? result.lagna.longitude,
             settings.division,
           ),
           retrograde: false,
@@ -230,7 +324,10 @@ export default function Studio() {
     settings.bodies.includes(b.name as (typeof BODIES)[number]),
   );
   const asc = result
-    ? divisionalLongitude(result.lagna.longitude, settings.division)
+    ? divisionalLongitude(
+        result.lagna.longitudeExact ?? result.lagna.longitude,
+        settings.division,
+      )
     : 0;
   const active = bodies.find((b) => b.name === selected);
   const cells = Array.from({ length: 12 }, (_, i) => ({
@@ -251,7 +348,7 @@ export default function Studio() {
     setPlaying(false);
   }
   return (
-    <Shell active="studio">
+    <Frame embedded={embedded}>
       <div className="pro-page-title">
         <div>
           <p className="pro-eyebrow">THE ASTROLOGER’S STUDIO · 01</p>
@@ -394,13 +491,14 @@ export default function Studio() {
               </button>
               <label>
                 කාල වෙනස · {offset > 0 ? "+" : ""}
-                {offset} h
+                {Number(offset.toFixed(4))} h{" "}
+                {embedded ? "· minute precision / මිනිත්තුව" : ""}
                 <input
                   aria-label="Time offset in hours"
                   type="range"
-                  min="-720"
-                  max="720"
-                  step="1"
+                  min={embedded && !live ? -2 : -720}
+                  max={embedded && !live ? 2 : 720}
+                  step={embedded && !live ? 1 / 60 : 1}
                   value={offset}
                   onChange={(e) => {
                     setOffset(+e.target.value);
@@ -420,8 +518,10 @@ export default function Studio() {
               </button>
             </div>
             <p className="pro-small">
-              ±30 දින · Play: තත්පර 6කට පැය 6ක්. ජන්ම ක්‍රමයේ සිවිල් පැය; සජීවී
-              ක්‍රමයේ සැබෑ ගතවූ පැය.
+              {embedded && !live
+                ? "±2 පැය · Play: තත්පර 6කට මිනිත්තුවක්. "
+                : "±30 දින · Play: තත්පර 6කට පැය 6ක්. "}{" "}
+              ජන්ම ක්‍රමයේ සිවිල් පැය; සජීවී ක්‍රමයේ සැබෑ ගතවූ පැය.
             </p>
           </section>
           <div className="studio-grid">
@@ -441,7 +541,7 @@ export default function Studio() {
                 <span role="status" className="pro-pill">
                   {pending
                     ? "ගණනය වෙමින්…"
-                    : `D${settings.division} · ${settings.calculation.ayanamsa}`}
+                    : `D${settings.division} · ${(overlay?.calculation ?? settings.calculation).ayanamsa}`}
                 </span>
               </div>
               {pending && result && (
@@ -480,6 +580,15 @@ export default function Studio() {
                     {settings.layout === "wheel" ? (
                       <StudioWheel
                         bodies={bodies}
+                        transits={
+                          settings.division === 1
+                            ? overlay?.bodies.filter((b) =>
+                                settings.bodies.includes(
+                                  b.name as (typeof BODIES)[number],
+                                ),
+                              )
+                            : undefined
+                        }
                         asc={asc}
                         settings={settings}
                         selected={selected}
@@ -720,7 +829,7 @@ export default function Studio() {
             </aside>
           </div>
           {result && (
-            <section className="pro-card studio-worksheet">
+            <section className="pro-card studio-worksheet studio-planet-worksheet">
               <div className="studio-chart-heading">
                 <div>
                   <p className="pro-eyebrow">
@@ -739,8 +848,9 @@ export default function Studio() {
                 {result.native.date} {result.native.timeLocal} ·{" "}
                 {result.native.timezone} · {result.native.latitude},{" "}
                 {result.native.longitude} · {result.tradition.ayanamsa}{" "}
-                {result.tradition.ayanamsaDegrees}° · {resultConfig.nodes} nodes
-                · {settings.houses} houses · Vimshottari{" "}
+                {result.tradition.ayanamsaDegrees}° ·{" "}
+                {(overlay?.calculation ?? resultConfig).nodes} nodes ·{" "}
+                {settings.houses} houses · Vimshottari{" "}
                 {result.vimshottari.convention.yearDays}d
               </p>
               <p className="pro-small">
@@ -814,6 +924,33 @@ export default function Studio() {
           )}
         </>
       )}
+      {result && <YogaDesk result={result} />}
+      {result && (
+        <SaveChart
+          result={result}
+          config={overlay?.calculation ?? resultConfig}
+          ready={!pending && !error}
+        />
+      )}
+      {loaded && (
+        <TransitDesk
+          key={calculationKey}
+          result={workingResult}
+          ready={!pending && !error}
+          config={settings.calculation}
+          onOverlay={setOverlay}
+          initialState={initialState?.transit}
+          onState={setTransitState}
+        />
+      )}
+      {result && (
+        <DashaBrowser
+          key={`${result.native.utcTime}-${result.tradition.ayanamsa}-${result.vimshottari.convention.yearDays}`}
+          result={result}
+          initialState={initialState?.dasha}
+          onState={setDashaState}
+        />
+      )}
       {referenceOpen && (
         <StudioReference
           inputRef={searchRef}
@@ -824,6 +961,6 @@ export default function Studio() {
           onClose={() => setReferenceOpen(false)}
         />
       )}
-    </Shell>
+    </Frame>
   );
 }

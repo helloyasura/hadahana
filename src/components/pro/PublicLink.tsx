@@ -2,6 +2,11 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { CalculationConfig } from "@/lib/astrology/config";
+import {
+  readDocumentFile,
+  DocumentUploadFields,
+  type Upload,
+} from "./DocumentDesk";
 import Shell from "./Shell";
 import Chart, { type ProChartResult } from "./Chart";
 import { errorMessage, proRequest } from "./client";
@@ -27,7 +32,12 @@ export default function PublicLink({ token }: { token: string }) {
     [latitude, setLatitude] = useState(6.9271),
     [longitude, setLongitude] = useState(79.8612),
     [timezone, setTimezone] = useState("Asia/Colombo"),
-    [consent, setConsent] = useState(false);
+    [consent, setConsent] = useState(false),
+    [question, setQuestion] = useState(""),
+    [timeUnsure, setTimeUnsure] = useState(false),
+    [placeLabel, setPlaceLabel] = useState("Colombo"),
+    [upload, setUpload] = useState<Upload>(),
+    [documentConsent, setDocumentConsent] = useState(false);
   useEffect(() => {
     proRequest<Info>(`/public/${encodeURIComponent(token)}`)
       .then(setInfo)
@@ -42,11 +52,17 @@ export default function PublicLink({ token }: { token: string }) {
       setOutput(
         await proRequest<Output>(`/public/${encodeURIComponent(token)}`, {
           date,
-          time,
+          time: time || (timeUnsure ? "12:00" : ""),
+          timeUnsure,
+          placeLabel,
+          ...(upload
+            ? { document: { ...upload, consent: documentConsent } }
+            : {}),
           latitude,
           longitude,
           timezone,
           consent,
+          question,
         }),
       );
     } catch (e) {
@@ -114,14 +130,35 @@ export default function PublicLink({ token }: { token: string }) {
                       type="time"
                       value={time}
                       onChange={(e) => setTime(e.target.value)}
-                      required
+                      required={!timeUnsure}
                     />
                   </label>
                 </div>
+                <label className="pro-checkbox">
+                  <input
+                    aria-label="Unsure of birth time"
+                    type="checkbox"
+                    checked={timeUnsure}
+                    onChange={(e) => setTimeUnsure(e.target.checked)}
+                  />
+                  උපන් වේලාව නිශ්චිත නැත / Unsure of time (empty time uses
+                  provisional 12:00)
+                </label>
+                <label>
+                  උපන් ස්ථානයේ නම / Birth place
+                  <input
+                    aria-label="Birth place name"
+                    value={placeLabel}
+                    required
+                    maxLength={100}
+                    onChange={(e) => setPlaceLabel(e.target.value)}
+                  />
+                </label>
                 <label>
                   උපන් ස්ථානය · ඉක්මන් තේරීම
                   <select
                     defaultValue="colombo"
+                    required
                     onChange={(e) => {
                       const v: Record<string, [number, number]> = {
                         colombo: [6.9271, 79.8612],
@@ -130,6 +167,9 @@ export default function PublicLink({ token }: { token: string }) {
                         jaffna: [9.6615, 80.0255],
                       };
                       if (v[e.target.value]) {
+                        setPlaceLabel(
+                          e.target.options[e.target.selectedIndex].text,
+                        );
                         setLatitude(v[e.target.value][0]);
                         setLongitude(v[e.target.value][1]);
                         setTimezone("Asia/Colombo");
@@ -178,10 +218,36 @@ export default function PublicLink({ token }: { token: string }) {
                     required
                   />
                 </label>
+                <DocumentUploadFields
+                  consent={documentConsent}
+                  onConsent={setDocumentConsent}
+                  hasFile={!!upload}
+                  onFile={async (file) => {
+                    try {
+                      setUpload(
+                        file ? await readDocumentFile(file) : undefined,
+                      );
+                      setDocumentConsent(false);
+                    } catch (e) {
+                      setUpload(undefined);
+                      setMessage(errorMessage(e));
+                    }
+                  }}
+                />
+                <label>
+                  සේවා ඉල්ලීම / Your question (optional)
+                  <textarea
+                    aria-label="Customer question"
+                    maxLength={2000}
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                  />
+                </label>
                 <div className="pro-notice">
                   <label className="pro-checkbox">
                     <input
                       type="checkbox"
+                      aria-label="Birth data consent"
                       checked={consent}
                       onChange={(e) => setConsent(e.target.checked)}
                       required
@@ -189,7 +255,8 @@ export default function PublicLink({ token }: { token: string }) {
                     <span>
                       මගේ / මාගේ භාරයේ දරුවාගේ උපන් තොරතුරු{" "}
                       <b>{info.displayName}</b> වෙත යවා ගණනය සහ සේවාලාභී සටහනක්
-                      ලෙස දින 90ක් දක්වා සුරැකීමට එකඟ වෙමි.
+                      ලෙස දින 90ක් දක්වා සුරැකීමට එකඟ වෙමි. විමර්ශන සටහන් හා මා
+                      සඳහා වාර්තාවක් සකස් කිරීමටද එකඟ වෙමි.
                     </span>
                   </label>
                   <p className="pro-small">
@@ -199,7 +266,10 @@ export default function PublicLink({ token }: { token: string }) {
                     ප්‍රතිඵල බලන්න බැහැ.
                   </p>
                 </div>
-                <button className="pro-button" disabled={busy || !consent}>
+                <button
+                  className="pro-button"
+                  disabled={busy || !consent || (!!upload && !documentConsent)}
+                >
                   {busy ? "ගණනය කරමින්…" : "කේන්ද්‍රය ගණනය කරන්න →"}
                 </button>
               </form>

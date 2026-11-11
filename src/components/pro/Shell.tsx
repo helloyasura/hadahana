@@ -27,8 +27,12 @@ export default function Shell({
           {[
             ["dashboard", "දළ විශ්ලේෂණය", "/pro"],
             ["studio", "දෘශ්‍ය වැඩබිම", "/pro/studio"],
+            ["cases", "සේවා ඉල්ලීම්", "/pro/cases"],
             ["presets", "ගණනය කිරීමේ ක්‍රම", "/pro/presets"],
             ["links", "සබැඳි", "/pro/links"],
+            ["tools", "යොමු මෙවලම්", "/pro/tools"],
+            ["clients", "සේවාලාභී සටහන්", "/pro/clients"],
+            ["reference", "යොමු පුස්තකාලය", "/pro/reference"],
           ].map(([key, label, url]) => (
             <a
               key={key}

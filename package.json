@@ -13,18 +13,21 @@
     "verify:agent": "tsx scripts/verify-agent.mts",
     "verify:names": "npx tsx scripts/verify-names.mts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/verify-name-quality.mts && tsx scripts/verify-name-catalogue.mts && tsx scripts/verify-dosha-periods.mts && tsx scripts/verify-birth-timing.mts && tsx scripts/verify-asiri.mts && tsx scripts/verify-factor-align.mts && tsx scripts/verify-feedback.mts && tsx scripts/verify-nakath-finder.mts && tsx scripts/verify-names.mts && tsx --test scripts/verify-analytics.mts && npm run test:pro",
+    "test": "tsx scripts/verify-name-quality.mts && tsx scripts/verify-name-catalogue.mts && tsx scripts/verify-dosha-periods.mts && tsx scripts/verify-birth-timing.mts && tsx scripts/verify-asiri.mts && tsx scripts/verify-factor-align.mts && tsx scripts/verify-feedback.mts && tsx scripts/verify-nakath-finder.mts && tsx scripts/verify-names.mts && tsx --test scripts/verify-analytics.mts && npm run test:pro && tsx scripts/verify-pdf-timeouts.mts",
     "test:ui": "node scripts/ui-redesign.mjs",
     "test:account": "tsx scripts/verify-account.mts",
     "test:profile": "node scripts/verify-profile-flow.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
     "test:pdf": "tsx scripts/verify-pdf.mts",
     "test:pdf:ui": "node scripts/verify-pdf-flow.mjs",
-    "test:pro": "tsx scripts/verify-pro.mts && tsx scripts/verify-pro-lums.mts && tsx scripts/verify-pro-limits.mts && tsx scripts/verify-pro-studio.mts",
+    "test:pro": "tsx scripts/verify-pro.mts && tsx scripts/verify-pro-lums.mts && tsx scripts/verify-pro-limits.mts && tsx scripts/verify-pro-studio.mts && tsx scripts/verify-pro-v2.mts && npm run test:pro:cases",
     "test:pro:ui": "node scripts/verify-pro-flow.mjs",
     "test:panchanga": "tsx scripts/verify-panchanga.mts",
     "test:panchanga:ui": "node scripts/verify-panchanga-flow.mjs",
-    "test:pro:studio:ui": "node scripts/verify-pro-studio-flow.mjs"
+    "test:pro:studio:ui": "node scripts/verify-pro-studio-flow.mjs",
+    "test:pdf:timeouts": "tsx scripts/verify-pdf-timeouts.mts",
+    "test:pro:cases": "tsx scripts/verify-pro-cases.mts",
+    "test:pro:cases:ui": "node scripts/verify-pro-cases-flow.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.3.5",
@@ -38,6 +41,7 @@
     "posthog-js": "1.258.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sharp": "^0.35.5",
     "vpv-panchangam": "^1.0.0",
     "zod": "^4.6.7"
   },

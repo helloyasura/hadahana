@@ -1,3 +1,4 @@
+import { GANA, YONI } from "./nakshatra-attributes";
 import { findNekatha, NEKATHA_TABLE } from "./nakath-akshara";
 import { castKendraya, type BirthInput } from "./kendraya";
 import { rashiLabel } from "./sinhala-names";
@@ -34,67 +35,6 @@ const FAVOUR_TARA = new Set([
   "maitri",
   "parama_maitri",
 ]);
-
-/** Classical gana by nakshatra index (1–27). Deva / Manushya / Rakshasa. */
-const GANA: Record<number, "Deva" | "Manushya" | "Rakshasa"> = {
-  1: "Deva",
-  2: "Manushya",
-  3: "Rakshasa",
-  4: "Manushya",
-  5: "Deva",
-  6: "Manushya",
-  7: "Deva",
-  8: "Deva",
-  9: "Rakshasa",
-  10: "Rakshasa",
-  11: "Manushya",
-  12: "Manushya",
-  13: "Deva",
-  14: "Rakshasa",
-  15: "Deva",
-  16: "Rakshasa",
-  17: "Deva",
-  18: "Rakshasa",
-  19: "Rakshasa",
-  20: "Manushya",
-  21: "Manushya",
-  22: "Deva",
-  23: "Rakshasa",
-  24: "Rakshasa",
-  25: "Manushya",
-  26: "Manushya",
-  27: "Deva",
-};
-
-const YONI: Record<number, string> = {
-  1: "Ashwa",
-  2: "Gaja",
-  3: "Mesha",
-  4: "Sarpa",
-  5: "Sarpa",
-  6: "Shwani",
-  7: "Marjara",
-  8: "Mesha",
-  9: "Marjara",
-  10: "Mushaka",
-  11: "Mushaka",
-  12: "Gau",
-  13: "Mahisha",
-  14: "Vyaghra",
-  15: "Mahisha",
-  16: "Vyaghra",
-  17: "Mriga",
-  18: "Mriga",
-  19: "Shwani",
-  20: "Vanara",
-  21: "Nakula",
-  22: "Vanara",
-  23: "Simha",
-  24: "Ashwa",
-  25: "Simha",
-  26: "Gau",
-  27: "Gaja",
-};
 
 const YONI_ENEMY: Array<[string, string]> = [
   ["Ashwa", "Mahisha"],

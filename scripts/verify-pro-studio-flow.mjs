@@ -200,6 +200,25 @@ try {
     }),
     400,
   );
+  await check(
+    await post(anon, "/transits", {
+      action: "sky",
+      instant: "2000-01-01T00:00:00Z",
+      config: defaults,
+    }),
+    401,
+  );
+  await check(
+    await post(context, "/transits", {
+      action: "ingress",
+      from: "2000-01-01T00:00:00Z",
+      to: "2002-01-01T00:00:00Z",
+      planet: "Sun",
+      target: 9,
+      config: defaults,
+    }),
+    400,
+  );
   const calculated = await check(
     await post(context, "/studio", { input: synthetic, config: defaults }),
     200,
@@ -235,7 +254,10 @@ try {
   );
   assert.equal(await page.locator(".studio-planet").count(), 10);
   assert.equal(await page.locator(".studio-nak-label").count(), 27);
-  assert.equal(await page.locator(".studio-worksheet tbody tr").count(), 10);
+  assert.equal(
+    await page.locator(".studio-planet-worksheet tbody tr").count(),
+    10,
+  );
   await page.getByRole("button", { name: /Live/ }).click();
   await page.getByLabel("දිනය / Date", { exact: true }).fill("2000-01-01");
   await page.getByLabel("වේලාව / Time", { exact: true }).fill("12:00");
@@ -362,11 +384,67 @@ try {
     });
     await page.keyboard.press("Escape");
     assert.equal(await page.getByRole("dialog").count(), 0);
+    await page.getByLabel("Dasha date jump").fill("2001-01-01");
+    assert.equal(
+      await page
+        .locator(".studio-dasha-browser tbody .studio-row-selected")
+        .count(),
+      1,
+    );
+    await page
+      .locator(".studio-dasha-browser")
+      .screenshot({ path: path.join(shots, `pro-v2-dasha-${label}.png`) });
+    assert.equal(await page.locator(".studio-yoga-desk tbody tr").count(), 6);
+    await page
+      .locator(".studio-yoga-desk")
+      .screenshot({ path: path.join(shots, `pro-v2-yogas-${label}.png`) });
   }
   await page
     .getByRole("button", { name: "◎ රාශි චක්‍රය", exact: true })
     .click();
   await page.getByLabel("Divisional chart", { exact: true }).selectOption("1");
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".studio-canvas")?.getAttribute("aria-busy") ===
+      "false",
+  );
+  await page
+    .getByRole("button", { name: "මෙම සටහන ජන්ම ලෙස රඳවන්න", exact: true })
+    .click();
+  await page.getByLabel("Transit UTC instant").fill("2000-02-01T06:30");
+  await page
+    .getByRole("button", { name: "ගෝචරය පෙන්වන්න", exact: true })
+    .click();
+  await page.locator(".studio-transit-marker").first().waitFor();
+  assert.equal(await page.locator(".studio-transit-marker").count(), 9);
+  for (const [width, label] of [
+    [1440, "desktop"],
+    [390, "mobile"],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page
+      .locator(".studio-canvas")
+      .screenshot({ path: path.join(shots, `pro-v2-transits-${label}.png`) });
+    await page
+      .locator(".studio-transit-desk")
+      .screenshot({ path: path.join(shots, `pro-v2-ingress-${label}.png`) });
+  }
+  await page
+    .getByRole("button", { name: "ගෝචර ආවරණය ඉවත් කරන්න", exact: true })
+    .click();
+  await page.getByLabel("Client chart label").fill("Synthetic Alpha");
+  await page.getByLabel("Client chart tags").fill("vedic, family");
+  await page
+    .getByLabel("Client chart notes")
+    .fill("Synthetic private client note");
+  await page.getByLabel("Consent to save client chart").check();
+  await page
+    .getByRole("button", { name: "සේවාලාභී සටහන සුරකින්න", exact: true })
+    .click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Chart saved privately" })
+    .waitFor();
   await page.getByLabel("නැකත් 27 / පාද 108", { exact: true }).uncheck();
   assert.equal(await page.locator(".studio-nak-label").count(), 0);
   await page.getByLabel("Sun", { exact: true }).uncheck();
@@ -390,6 +468,181 @@ try {
     printBackground: true,
   });
   assert.deepEqual(errors, []);
+  await check(
+    await post(anon, "/tools", { action: "panchanga", input: synthetic }),
+    401,
+  );
+  await check(
+    await post(context, "/tools", {
+      action: "nakath",
+      birth: synthetic,
+      fromDate: "2000-01-01",
+      toDate: "2000-03-01",
+      eventId: "naming",
+    }),
+    400,
+  );
+  await check(
+    await post(anon, "/charts", {
+      input: synthetic,
+      config: defaults,
+      label: "Denied",
+      tags: [],
+      notes: "",
+      consent: true,
+    }),
+    401,
+  );
+  await check(
+    await post(context, "/charts", {
+      input: synthetic,
+      config: defaults,
+      label: "Denied",
+      tags: [],
+      notes: "",
+      consent: false,
+    }),
+    400,
+  );
+  const beta = await check(
+    await post(context, "/charts", {
+      input: { ...synthetic, date: "2002-03-03" },
+      config: defaults,
+      label: "Synthetic Beta",
+      tags: ["work"],
+      notes: "Synthetic comparison note",
+      consent: true,
+    }),
+    200,
+  );
+  const archive = await check(
+    await context.request.get(`${api}/workspace`),
+    200,
+  );
+  const alpha = archive.clients.find((c) => c.label === "Synthetic Alpha");
+  assert.ok(alpha);
+  await check(
+    await other.request.get(`${api}/workspace?client=${alpha.id}`),
+    404,
+  );
+  await check(
+    await post(other, "/workspace", {
+      action: "chartMeta",
+      id: alpha.id,
+      label: "Intrusion",
+      tags: [],
+      notes: "",
+    }),
+    404,
+  );
+  await page.emulateMedia({ media: "screen" });
+  await page.goto(`${origin}${base}/pro/clients`);
+  await page.getByLabel("Search client charts").fill("Alpha vedic");
+  await page.getByText("Synthetic Alpha", { exact: true }).first().waitFor();
+  await page.waitForFunction(
+    () => document.querySelectorAll(".pro-list li").length === 1,
+  );
+  assert.equal(await page.locator(".pro-list li").count(), 1);
+  await page.getByLabel("Comparison chart A").selectOption(alpha.id);
+  await page.getByLabel("Comparison chart B").selectOption(beta.id);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll(".pro-client-comparison article").length === 2,
+  );
+  await page
+    .getByLabel("Edit client notes")
+    .fill("Updated private client note");
+  await page
+    .getByRole("button", {
+      name: "සේවාලාභී සටහන් යාවත්කාලීන කරන්න",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "සේවාලාභී සටහන් සුරැකුණි." })
+    .waitFor();
+  assert.equal(
+    (
+      await check(
+        await context.request.get(`${api}/workspace?client=${alpha.id}`),
+        200,
+      )
+    ).client.notes,
+    "Updated private client note",
+  );
+  for (const [width, size] of [
+    [1440, "desktop"],
+    [390, "mobile"],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
+    await page.screenshot({
+      path: path.join(shots, `pro-v2-client-comparison-${size}.png`),
+      fullPage: true,
+    });
+  }
+  await page.emulateMedia({ media: "screen" });
+  await page.goto(`${origin}${base}/pro/tools`);
+  await page
+    .getByRole("button", { name: "ගණනය කරන්න / Calculate", exact: true })
+    .click();
+  await page.locator(".pro-tool-result").waitFor();
+  assert.ok(
+    (await page.locator(".pro-tool-result").innerText()).includes(
+      "Asia/Colombo",
+    ),
+  );
+  for (const [tab, label] of [
+    ["පංචාංගය", "panchanga"],
+    ["පොරොන්දම්", "matching"],
+    ["නැකත් දින සොයන්න", "nakath"],
+  ]) {
+    await page.getByRole("button", { name: tab, exact: true }).click();
+    await page
+      .getByRole("button", { name: "ගණනය කරන්න / Calculate", exact: true })
+      .click();
+    await page.locator(".pro-tool-result").waitFor();
+    for (const [width, size] of [
+      [1440, "desktop"],
+      [390, "mobile"],
+    ]) {
+      await page.setViewportSize({ width, height: 1000 });
+      assert.ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      );
+      await page.screenshot({
+        path: path.join(shots, `pro-v2-${label}-${size}.png`),
+        fullPage: true,
+      });
+    }
+  }
+  await page.goto(`${origin}${base}/pro/reference`);
+  await page.getByLabel("Search reference library").fill("Dignity");
+  assert.equal(await page.locator(".studio-reference-grid article").count(), 7);
+  for (const [width, size] of [
+    [1440, "desktop"],
+    [390, "mobile"],
+  ]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    );
+    await page.screenshot({
+      path: path.join(shots, `pro-v2-library-${size}.png`),
+      fullPage: true,
+    });
+  }
+  await page.getByLabel("Search reference library").fill("Gana Deva");
+  assert.ok((await page.locator(".studio-reference-grid article").count()) > 0);
   expired.add(subjectFor("pilot-a@example.test"));
   await check(
     await post(context, "/studio", { input: synthetic, config: defaults }),

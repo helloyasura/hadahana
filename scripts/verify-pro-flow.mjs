@@ -330,7 +330,9 @@ try {
       await page.locator(selector).first().waitFor();
       await page.evaluate(() => document.fonts.ready);
       if (name === "link-generator") {
-        await page.getByRole("button", { name: "සබැඳිය ජනනය කරන්න ↗" }).click();
+        await page
+          .getByRole("button", { name: "සබැඳිය ජනනය කරන්න ↗" })
+          .click();
         await page.getByLabel("Generated private link").waitFor();
       }
       if (name === "dashboard")
@@ -351,7 +353,7 @@ try {
     }
     await page.getByLabel("උපන් දිනය", { exact: true }).fill(synthetic.date);
     await page.getByLabel("උපන් වේලාව", { exact: true }).fill(synthetic.time);
-    await page.locator('input[type="checkbox"]').check();
+    await page.getByLabel("Birth data consent").check();
     await page.getByRole("button", { name: "කේන්ද්‍රය ගණනය කරන්න →" }).click();
     await page.locator(".pro-result .pro-chart-grid").waitFor();
     await page.addStyleTag({
