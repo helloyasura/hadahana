@@ -18,6 +18,11 @@ import type { ProChartResult } from "./Chart";
 import { SouthIndianChart } from "@/components/SouthIndianChart";
 import { errorMessage, proRequest } from "./client";
 import Shell from "./Shell";
+import {
+  caseStudioSchema,
+  shiftCivilClock,
+  type CaseStudioState,
+} from "@/lib/pro/cases";
 import StudioWheel, { bodyDescription } from "./StudioWheel";
 import StudioReference from "./StudioReference";
 import DashaBrowser from "./DashaBrowser";
@@ -45,13 +50,43 @@ export function zonedClock(ms: number, timezone: string) {
   };
 }
 const defaults = studioSettingsSchema.parse({});
-export default function Studio() {
-  const [settings, setSettings] = useState<StudioSettings>(defaults);
+function Frame({
+  embedded,
+  children,
+}: {
+  embedded: boolean;
+  children: React.ReactNode;
+}) {
+  return embedded ? (
+    <div className="pro-case-studio">{children}</div>
+  ) : (
+    <Shell active="studio">{children}</Shell>
+  );
+}
+export default function Studio({
+  embedded = false,
+  initialState,
+  onState,
+}: {
+  embedded?: boolean;
+  initialState?: CaseStudioState;
+  onState?: (
+    state: CaseStudioState,
+    result: ProChartResult | undefined,
+    transits: StudioBody[],
+  ) => void;
+}) {
+  const [settings, setSettings] = useState<StudioSettings>(
+    initialState?.settings ?? defaults,
+  );
   const [loaded, setLoaded] = useState(false),
     [presets, setPresets] = useState<Preset[]>([]);
   const [resultConfig, setResultConfig] = useState<CalculationConfig>(
     defaults.calculation,
   );
+  const [dashaState, setDashaState] = useState(initialState?.dasha);
+  const [transitState, setTransitState] = useState(initialState?.transit);
+  const [computedKey, setComputedKey] = useState("");
   const [overlay, setOverlay] = useState<TransitOverlay | null>(null);
   const [workingResult, setResult] = useState<ProChartResult>(),
     [error, setError] = useState(""),
@@ -60,17 +95,20 @@ export default function Studio() {
     [saving, setSaving] = useState(false),
     [revision, setRevision] = useState(0);
   const result = overlay?.natal ?? workingResult;
-  const [live, setLive] = useState(true),
+  const [live, setLive] = useState(!initialState),
     [now, setNow] = useState(() => Date.now()),
     [offset, setOffset] = useState(0),
     [playing, setPlaying] = useState(false);
-  const [birth, setBirth] = useState({ date: "2000-01-01", time: "12:00" });
-  const [location, setLocation] = useState({
-    latitude: "6.9271",
-    longitude: "79.8612",
-    timezone: "Asia/Colombo",
+  const [birth, setBirth] = useState({
+    date: initialState?.input.date ?? "2000-01-01",
+    time: initialState?.input.time ?? "12:00",
   });
-  const [selected, setSelected] = useState("Moon"),
+  const [location, setLocation] = useState({
+    latitude: String(initialState?.input.latitude ?? 6.9271),
+    longitude: String(initialState?.input.longitude ?? 79.8612),
+    timezone: initialState?.input.timezone ?? "Asia/Colombo",
+  });
+  const [selected, setSelected] = useState(initialState?.selected ?? "Moon"),
     [name, setName] = useState("මගේ දෘශ්‍ය ක්‍රමය");
   const [referenceOpen, setReferenceOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -79,7 +117,10 @@ export default function Studio() {
     proRequest<{ studio: StudioSettings; presets: Preset[] }>("/workspace")
       .then((d) => {
         if (!cancelled) {
-          setSettings(studioSettingsSchema.parse(d.studio ?? {}));
+          setSettings(
+            initialState?.settings ??
+              studioSettingsSchema.parse(d.studio ?? {}),
+          );
           setPresets(d.presets);
           setLoaded(true);
         }
@@ -90,7 +131,7 @@ export default function Studio() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialState]);
   useEffect(() => {
     if (!live) return;
     const t = setInterval(() => setNow(Date.now()), 60000);
@@ -99,11 +140,20 @@ export default function Studio() {
   useEffect(() => {
     if (!playing) return;
     const t = setInterval(
-      () => setOffset((v) => (v >= 720 ? -720 : v + 6)),
+      () =>
+        setOffset((v) =>
+          embedded && !live
+            ? v >= 2
+              ? -2
+              : v + 1 / 60
+            : v >= 720
+              ? -720
+              : v + 6,
+        ),
       6000,
     );
     return () => clearInterval(t);
-  }, [playing]);
+  }, [playing, embedded, live]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -119,17 +169,48 @@ export default function Studio() {
   const clock = useMemo(() => {
     try {
       if (live) return zonedClock(now + offset * 3600000, location.timezone);
-      const d = new Date(`${birth.date}T${birth.time}:00Z`);
-      d.setUTCHours(d.getUTCHours() + offset);
-      return {
-        date: d.toISOString().slice(0, 10),
-        time: d.toISOString().slice(11, 16),
-      };
+      return shiftCivilClock(birth, offset);
     } catch {
       return null;
     }
   }, [live, now, offset, birth, location.timezone]);
   const calculationKey = JSON.stringify(settings.calculation);
+  const requestedKey = JSON.stringify({ clock, location, calculationKey });
+  useEffect(() => {
+    const parsed = caseStudioSchema.safeParse({
+      input: {
+        ...clock,
+        latitude: Number(location.latitude),
+        longitude: Number(location.longitude),
+        timezone: location.timezone,
+      },
+      settings,
+      selected,
+      dasha: dashaState,
+      transit: transitState,
+    });
+    if (loaded && parsed.success)
+      onState?.(
+        parsed.data,
+        computedKey === requestedKey && !pending && !error ? result : undefined,
+        overlay?.bodies ?? [],
+      );
+  }, [
+    loaded,
+    clock,
+    location,
+    settings,
+    selected,
+    dashaState,
+    transitState,
+    onState,
+    result,
+    pending,
+    error,
+    computedKey,
+    requestedKey,
+    overlay,
+  ]);
   useEffect(() => {
     setOverlay(null);
   }, [calculationKey]);
@@ -155,6 +236,7 @@ export default function Studio() {
         });
         if (!cancelled) {
           setResult(r.result);
+          setComputedKey(requestedKey);
           setResultConfig(JSON.parse(calculationKey));
           setRevision((v) => v + 1);
         }
@@ -171,7 +253,7 @@ export default function Studio() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [loaded, clock, location, calculationKey]);
+  }, [loaded, clock, location, calculationKey, requestedKey]);
   function change<K extends keyof StudioSettings>(
     key: K,
     value: StudioSettings[K],
@@ -266,7 +348,7 @@ export default function Studio() {
     setPlaying(false);
   }
   return (
-    <Shell active="studio">
+    <Frame embedded={embedded}>
       <div className="pro-page-title">
         <div>
           <p className="pro-eyebrow">THE ASTROLOGER’S STUDIO · 01</p>
@@ -409,13 +491,14 @@ export default function Studio() {
               </button>
               <label>
                 කාල වෙනස · {offset > 0 ? "+" : ""}
-                {offset} h
+                {Number(offset.toFixed(4))} h{" "}
+                {embedded ? "· minute precision / මිනිත්තුව" : ""}
                 <input
                   aria-label="Time offset in hours"
                   type="range"
-                  min="-720"
-                  max="720"
-                  step="1"
+                  min={embedded && !live ? -2 : -720}
+                  max={embedded && !live ? 2 : 720}
+                  step={embedded && !live ? 1 / 60 : 1}
                   value={offset}
                   onChange={(e) => {
                     setOffset(+e.target.value);
@@ -435,8 +518,10 @@ export default function Studio() {
               </button>
             </div>
             <p className="pro-small">
-              ±30 දින · Play: තත්පර 6කට පැය 6ක්. ජන්ම ක්‍රමයේ සිවිල් පැය; සජීවී
-              ක්‍රමයේ සැබෑ ගතවූ පැය.
+              {embedded && !live
+                ? "±2 පැය · Play: තත්පර 6කට මිනිත්තුවක්. "
+                : "±30 දින · Play: තත්පර 6කට පැය 6ක්. "}{" "}
+              ජන්ම ක්‍රමයේ සිවිල් පැය; සජීවී ක්‍රමයේ සැබෑ ගතවූ පැය.
             </p>
           </section>
           <div className="studio-grid">
@@ -854,12 +939,16 @@ export default function Studio() {
           ready={!pending && !error}
           config={settings.calculation}
           onOverlay={setOverlay}
+          initialState={initialState?.transit}
+          onState={setTransitState}
         />
       )}
       {result && (
         <DashaBrowser
           key={`${result.native.utcTime}-${result.tradition.ayanamsa}-${result.vimshottari.convention.yearDays}`}
           result={result}
+          initialState={initialState?.dasha}
+          onState={setDashaState}
         />
       )}
       {referenceOpen && (
@@ -872,6 +961,6 @@ export default function Studio() {
           onClose={() => setReferenceOpen(false)}
         />
       )}
-    </Shell>
+    </Frame>
   );
 }

@@ -33,7 +33,7 @@ ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 
 ENV CHROMIUM_PATH=/usr/bin/chromium-browser
 # System Chromium only: no Playwright browser download; Sinhala HarfBuzz fonts.
-RUN apk add --no-cache wget chromium font-noto-sinhala \
+RUN apk add --no-cache wget chromium font-noto-sinhala poppler-utils \
   && addgroup -g 1001 -S nodejs && adduser -u 1001 -S nextjs -G nodejs \
   && mkdir -p /var/lib/handahana && chown 1001:1001 /var/lib/handahana
 

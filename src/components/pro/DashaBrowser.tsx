@@ -1,9 +1,18 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { dashaTree, periodPath } from "@/lib/pro/dasha";
 import { grahaLabel } from "@/lib/astrology/sinhala-names";
 import type { ProChartResult } from "./Chart";
-export default function DashaBrowser({ result }: { result: ProChartResult }) {
+type State = { maha: number; bhukti: number; date: string };
+export default function DashaBrowser({
+  result,
+  initialState,
+  onState,
+}: {
+  result: ProChartResult;
+  initialState?: State;
+  onState?: (state: State) => void;
+}) {
   const tree = useMemo(
     () =>
       dashaTree(
@@ -13,10 +22,13 @@ export default function DashaBrowser({ result }: { result: ProChartResult }) {
       ),
     [result],
   );
-  const [maha, setMaha] = useState(0),
-    [bhukti, setBhukti] = useState(0),
-    [date, setDate] = useState(""),
+  const [maha, setMaha] = useState(initialState?.maha ?? 0),
+    [bhukti, setBhukti] = useState(initialState?.bhukti ?? 0),
+    [date, setDate] = useState(initialState?.date ?? ""),
     [message, setMessage] = useState("");
+  useEffect(() => {
+    onState?.({ maha, bhukti, date });
+  }, [maha, bhukti, date, onState]);
   const m = tree[maha] ?? tree[0],
     b = m.children[bhukti] ?? m.children[0];
   const format = (ms: number) =>

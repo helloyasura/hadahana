@@ -187,6 +187,7 @@ export default function Workspace({
                           >
                             විවෘත කරන්න
                           </button>
+                          <a href={withBasePath(`/pro/cases?id=${c.id}`)}>විමර්ශනය දිගටම →</a>
                         </li>
                       ))}
                     </ul>

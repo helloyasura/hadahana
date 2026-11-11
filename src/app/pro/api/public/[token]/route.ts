@@ -1,5 +1,7 @@
 import { validateResolvedCivilTime } from "@/lib/pro/civil-time";
 import { z } from "zod";
+import { documentUploadSchema, sanitizeDocument } from "@/lib/pro/document";
+import { initialCase } from "@/lib/pro/cases";
 import {
   failure,
   jsonBody,
@@ -23,6 +25,10 @@ type Context = { params: Promise<{ token: string }> };
 const inputSchema = z
   .object({
     consent: z.literal(true),
+    question: z.string().trim().max(2000).default(""),
+    timeUnsure: z.boolean().default(false),
+    placeLabel: z.string().trim().max(100).default(""),
+    document: documentUploadSchema.optional(),
     date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -85,7 +91,7 @@ export async function GET(req: Request, ctx: Context) {
 }
 export async function POST(req: Request, ctx: Context) {
   try {
-    const body = inputSchema.parse(await jsonBody(req));
+    const body = inputSchema.parse(await jsonBody(req, 3 * 1024 * 1024));
     const { token } = await ctx.params,
       { owner, preset, link } = await lookup(token, req);
     const allowed = await transaction((db) => {
@@ -106,8 +112,11 @@ export async function POST(req: Request, ctx: Context) {
         throw new ProError("මෙම ජෝතිෂ්‍යවේදියාගේ client සීමාවට පැමිණ ඇත.", 409);
       current.uses++;
     });
-    const { consent: _consent, ...input } = body;
+    const { consent: _consent, question, timeUnsure, placeLabel, document: upload, ...input } = body;
     void _consent;
+    let document: Awaited<ReturnType<typeof sanitizeDocument>> | undefined;
+    if (upload) { try { document = await sanitizeDocument(upload); } catch { throw new ProError("Invalid document: JPEG/PNG/WebP or unencrypted PDF (1–4 pages), maximum 2MB. Conversion must fit safe limits."); } }
+
     const result = await castKendraya(input, preset.config);
     validateResolvedCivilTime(
       input.date,
@@ -154,6 +163,7 @@ export async function POST(req: Request, ctx: Context) {
         linkId: link.id,
         presetId: preset.id,
         input,
+        case: { ...initialCase({ input, manifest, createdAt: Date.now() }), question, timeUnsure, placeLabel, ...(document ? { document } : {}) },
         result,
         manifest,
         consentVersion: "pro-v1",
