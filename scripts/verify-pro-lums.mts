@@ -14,7 +14,8 @@ const secret = "synthetic-pro-service-key-at-least-32-characters",
 let status = 200,
   payload: unknown = { challengeId },
   calls = 0,
-  latest: RequestInit | undefined;
+  latest: RequestInit | undefined,
+  responseHeaders: Record<string, string> = {};
 globalThis.fetch = async (input, init) => {
   calls++;
   latest = init;
@@ -24,7 +25,7 @@ globalThis.fetch = async (input, init) => {
   );
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...responseHeaders },
   });
 };
 try {
@@ -106,12 +107,66 @@ try {
   payload = {};
   await assert.rejects(
     startVerification("synthetic@example.test", "login"),
-    (e) => (e as { status: number }).status === 429,
+    (e) =>
+      (e as { status: number }).status === 429 &&
+      (e as Error).message === "නව කේතයක් ඉල්ලීමට පෙර රැඳී සිටින්න.",
   );
+  payload = {
+    error: "Too many Pro requests. Please wait and try again.",
+    reason: "email_hourly_limit",
+    retryAfterSeconds: 900,
+    limit: 5,
+  };
+  await assert.rejects(
+    startVerification("synthetic@example.test", "login"),
+    (e) => {
+      const err = e as {
+        status: number;
+        message: string;
+        reason?: string;
+        retryAfterSeconds?: number;
+        limit?: number;
+      };
+      return (
+        err.status === 429 &&
+        err.reason === "email_hourly_limit" &&
+        err.retryAfterSeconds === 900 &&
+        err.limit === 5 &&
+        err.message.includes("කේත 5ක්") &&
+        err.message.includes("මිනිත්තු 15") &&
+        err.message.includes("5 codes this hour")
+      );
+    },
+  );
+  payload = {};
+  responseHeaders = { "Retry-After": "45" };
+  await assert.rejects(
+    startVerification("synthetic@example.test", "login"),
+    (e) =>
+      (e as { status: number; retryAfterSeconds?: number }).status === 429 &&
+      (e as { retryAfterSeconds?: number }).retryAfterSeconds === 45 &&
+      (e as Error).message.includes("තත්පර 45"),
+  );
+  responseHeaders = {};
   status = 401;
+  payload = {
+    error: "Too many incorrect attempts. Request a new code.",
+    reason: "too_many_attempts",
+    limit: 5,
+  };
   await assert.rejects(
     verifyEmail(challengeId, "000000"),
-    (e) => (e as { status: number }).status === 401,
+    (e) =>
+      (e as { status: number; reason?: string }).status === 401 &&
+      (e as { reason?: string }).reason === "too_many_attempts" &&
+      (e as Error).message.includes("නව කේතයක් ඉල්ලන්න"),
+  );
+  payload = {};
+  await assert.rejects(
+    verifyEmail(challengeId, "000000"),
+    (e) =>
+      (e as { status: number }).status === 401 &&
+      (e as Error).message === "කේතය හෝ පිවිසුම් තොරතුරු වැරදියි.",
   );
   status = 500;
   payload = { error: "synthetic sensitive internal detail" };

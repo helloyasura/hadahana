@@ -1,8 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { withBasePath } from "@/lib/base-path";
+import {
+  isTimedProLimit,
+  proLimitMessage,
+  WRONG_CODE,
+  type ProLimitDetails,
+} from "@/lib/pro/limits";
 import Shell from "./Shell";
-import { errorMessage, proRequest } from "./client";
+import { errorMessage, ProClientError, proRequest } from "./client";
 export default function Login({ register = false }: { register?: boolean }) {
   const [email, setEmail] = useState(""),
     [name, setName] = useState(""),
@@ -10,8 +16,27 @@ export default function Login({ register = false }: { register?: boolean }) {
   const [pending, setPending] = useState(false),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
+  const [limit, setLimit] = useState<ProLimitDetails>({}),
+    [waitUntil, setWaitUntil] = useState(0),
+    [now, setNow] = useState(() => Date.now());
+  const remaining = Math.max(0, Math.ceil((waitUntil - now) / 1000));
+  useEffect(() => {
+    if (waitUntil <= Date.now()) return;
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [waitUntil]);
+  const displayMessage =
+    remaining > 0 && isTimedProLimit(limit.reason)
+      ? proLimitMessage({ ...limit, retryAfterSeconds: remaining })
+      : remaining > 0 && !limit.reason
+        ? proLimitMessage({ retryAfterSeconds: remaining })
+        : message;
+  const waiting = remaining > 0;
+  const showRegisterHint =
+    !register && displayMessage === WRONG_CODE;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (waiting) return;
     setBusy(true);
     setMessage("");
     try {
@@ -26,12 +51,36 @@ export default function Login({ register = false }: { register?: boolean }) {
           intent: register ? "register" : "login",
         });
         setPending(true);
+        setWaitUntil(0);
+        setLimit({});
         setMessage(
           "ඔබගේ ඊමේල් වෙත යැවූ කේතය ඇතුළත් කරන්න. එය මිනිත්තු 10කින් කල් ඉකුත් වේ.",
         );
       }
     } catch (e) {
-      setMessage(errorMessage(e));
+      const err = e instanceof ProClientError ? e : undefined;
+      const details = {
+        reason: err?.reason,
+        retryAfterSeconds: err?.retryAfterSeconds,
+        limit: err?.limit,
+      };
+      setLimit(details);
+      if (
+        err &&
+        (isTimedProLimit(err.reason) ||
+          (err.status === 429 && err.retryAfterSeconds != null))
+      ) {
+        const seconds = Math.max(1, err.retryAfterSeconds ?? 0);
+        setWaitUntil(Date.now() + seconds * 1000);
+        setNow(Date.now());
+        setMessage(proLimitMessage({ ...details, retryAfterSeconds: seconds }));
+      } else if (err?.reason === "too_many_attempts") {
+        setWaitUntil(0);
+        setMessage(proLimitMessage(details));
+      } else {
+        setWaitUntil(0);
+        setMessage(errorMessage(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -115,17 +164,22 @@ export default function Login({ register = false }: { register?: boolean }) {
                 />
               </label>
             )}
-            <button className="pro-button" disabled={busy}>
+            <button className="pro-button" disabled={busy || waiting}>
               {busy
                 ? "රැඳී සිටින්න…"
-                : pending
-                  ? "සත්‍යාපනය කර පිවිසෙන්න →"
-                  : "ඊමේල් කේතය ලබාගන්න →"}
+                : waiting
+                  ? remaining >= 60
+                    ? `මිනිත්තු ${Math.ceil(remaining / 60)} ක් රැඳී සිටින්න`
+                    : `තත්පර ${remaining} ක් රැඳී සිටින්න`
+                  : pending
+                    ? "සත්‍යාපනය කර පිවිසෙන්න →"
+                    : "ඊමේල් කේතය ලබාගන්න →"}
             </button>
             {pending && (
               <button
                 type="button"
                 className="pro-text-button"
+                disabled={waiting}
                 onClick={() => {
                   setPending(false);
                   setCode("");
@@ -135,9 +189,16 @@ export default function Login({ register = false }: { register?: boolean }) {
               </button>
             )}
           </form>
-          {message && (
+          {displayMessage && (
             <p role="status" className="pro-notice">
-              {message}
+              {displayMessage}
+            </p>
+          )}
+          {showRegisterHint && (
+            <p className="pro-muted pro-auth-switch">
+              පළමු වතාවටද?{" "}
+              <a href={withBasePath("/pro/register")}>ලියාපදිංචි වන්න</a>
+              {" / First time? Register instead"}
             </p>
           )}
           <p className="pro-muted pro-auth-switch">

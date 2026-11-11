@@ -52,9 +52,10 @@ export async function POST(req: Request) {
     if (!allowed)
       throw new ProError("කරුණාකර මිනිත්තු කිහිපයකින් උත්සාහ කරන්න.", 429);
     if (body.action === "start") {
+      // Stay above LUMS's email hourly cap so its 429 reason/limit/retry fields reach the user.
       if (
         !(await transaction((db) =>
-          consumeRate(db, "auth-email", body.email, 3, 3600),
+          consumeRate(db, "auth-email", body.email, 10, 3600),
         ))
       )
         throw new ProError("නව කේතයක් ඉල්ලීමට පෙර රැඳී සිටින්න.", 429);

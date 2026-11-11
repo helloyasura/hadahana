@@ -75,12 +75,24 @@ export type ProStore = {
   }[];
   rates: { key: string; count: number; expiresAt: number }[];
 };
+export type ProErrorDetails = {
+  reason?: string;
+  retryAfterSeconds?: number;
+  limit?: number;
+};
 export class ProError extends Error {
+  reason?: string;
+  retryAfterSeconds?: number;
+  limit?: number;
   constructor(
     message: string,
     public status = 400,
+    details?: ProErrorDetails,
   ) {
     super(message);
+    this.reason = details?.reason;
+    this.retryAfterSeconds = details?.retryAfterSeconds;
+    this.limit = details?.limit;
   }
 }
 export const digest = (s: string) =>
