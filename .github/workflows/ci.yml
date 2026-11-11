@@ -35,6 +35,10 @@ jobs:
         env:
           PRO_SCREENSHOTS_DIR: ${{ runner.temp }}/jyotisha-pro-shots
         run: npm run test:pro:ui
+      - name: Synthetic Pro visual studio / controls / references UI
+        env:
+          PRO_SCREENSHOTS_DIR: ${{ runner.temp }}/jyotisha-pro-shots
+        run: npm run test:pro:studio:ui
       - uses: actions/upload-artifact@v4
         if: always()
         with:

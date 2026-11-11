@@ -7,6 +7,7 @@ import {
 } from "node:crypto";
 import { mkdir, readFile, writeFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
+import { studioSettingsSchema, type StudioSettings } from "./studio";
 import type { CalculationConfig } from "../astrology/config";
 import type { BirthInput, castKendraya } from "../astrology/kendraya";
 
@@ -18,6 +19,7 @@ export type ProAccount = {
   qualifications: string;
   contact: string;
   logo: string;
+  studio?: StudioSettings;
   createdAt: number;
 };
 export type Preset = {
@@ -26,6 +28,7 @@ export type Preset = {
   name: string;
   version: number;
   config: CalculationConfig;
+  studio?: StudioSettings;
   createdAt: number;
 };
 export type ShareLink = {
@@ -166,6 +169,9 @@ export async function transaction<T>(
           503,
         );
     }
+    // Additive migration: legacy accounts/presets retain their original calculation configs.
+    for (const account of db.accounts)
+      account.studio = studioSettingsSchema.parse(account.studio ?? {});
     const now = Date.now();
     db.sessions = db.sessions.filter((s) => s.expiresAt > now);
     db.challenges = db.challenges.filter((s) => s.expiresAt > now);
