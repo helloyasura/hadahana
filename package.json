@@ -20,7 +20,7 @@
     "icons:generate": "node scripts/generate-icons.mjs",
     "test:pdf": "tsx scripts/verify-pdf.mts",
     "test:pdf:ui": "node scripts/verify-pdf-flow.mjs",
-    "test:pro": "tsx scripts/verify-pro.mts && tsx scripts/verify-pro-lums.mts && tsx scripts/verify-pro-limits.mts && tsx scripts/verify-pro-studio.mts",
+    "test:pro": "tsx scripts/verify-pro.mts && tsx scripts/verify-pro-lums.mts && tsx scripts/verify-pro-limits.mts && tsx scripts/verify-pro-studio.mts && tsx scripts/verify-pro-v2.mts",
     "test:pro:ui": "node scripts/verify-pro-flow.mjs",
     "test:panchanga": "tsx scripts/verify-panchanga.mts",
     "test:panchanga:ui": "node scripts/verify-panchanga-flow.mjs",

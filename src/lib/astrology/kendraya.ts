@@ -103,7 +103,7 @@ function padaBorderWarning(
   };
 }
 
-export async function castKendraya(input: BirthInput, settings?: CalculationConfig) {
+export async function castKendraya(input: BirthInput, settings?: CalculationConfig, options?: { precise?: boolean }) {
   const config = calculationConfigSchema.parse(settings ?? { ...DEFAULT_CALCULATION_CONFIG, ayanamsa: input.ayanamsa ?? "lahiri" });
   const date = normalizeDate(input.date);
   const time = normalizeTime(input.time);
@@ -155,6 +155,7 @@ export async function castKendraya(input: BirthInput, settings?: CalculationConf
       rashiSinhala: r.sinhala,
       degreeInRashi: p.dms,
       longitude: Number(p.longitude.toFixed(6)),
+      ...(options?.precise ? { longitudeExact: p.longitude } : {}),
       bhava: p.house,
       bhavaThemes: BHAVA[p.house]?.themes ?? "",
       nekatha: n.english,
@@ -234,6 +235,7 @@ export async function castKendraya(input: BirthInput, settings?: CalculationConf
       rashiSinhala: lagnaRashi.sinhala,
       degreeInRashi: raw.ascendant.dms,
       longitude: Number(raw.ascendant.longitude.toFixed(6)),
+      ...(options?.precise ? { longitudeExact: raw.ascendant.longitude } : {}),
       nekatha: raw.ascendant.nakshatra,
       pada: raw.ascendant.nakshatra_pada,
       lord: lagnaRashi.lord,
@@ -243,6 +245,7 @@ export async function castKendraya(input: BirthInput, settings?: CalculationConf
       rashiSinhala: chandraRashi.sinhala,
       degreeInRashi: moon.dms,
       longitude: Number(moon.longitude.toFixed(6)),
+      ...(options?.precise ? { longitudeExact: moon.longitude } : {}),
       nekatha: nekatha.english,
       nekathaSinhala: nekatha.sinhala,
       nekathaSpoken: nekatha.spoken,

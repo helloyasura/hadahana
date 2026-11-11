@@ -20,6 +20,7 @@ import { errorMessage, proRequest } from "./client";
 import Shell from "./Shell";
 import StudioWheel, { bodyDescription } from "./StudioWheel";
 import StudioReference from "./StudioReference";
+import DashaBrowser from "./DashaBrowser";
 
 export function zonedClock(ms: number, timezone: string) {
   const p = Object.fromEntries(
@@ -210,7 +211,10 @@ export default function Studio() {
         ...result.navagraha.map((p) => ({
           name: p.graha,
           label: p.grahaSinhala,
-          longitude: divisionalLongitude(p.longitude, settings.division),
+          longitude: divisionalLongitude(
+            p.longitudeExact ?? p.longitude,
+            settings.division,
+          ),
           retrograde: p.retrograde,
           dignity: `${p.exalted ? "උච්ච / Exalted" : p.debilitated ? "නීච / Debilitated" : p.ownSign ? "ස්වක්ෂේත්‍ර / Own sign" : "සාමාන්‍ය / Other"}${p.combust ? " · අස්ත / Combust" : ""} (D1)`,
         })),
@@ -230,7 +234,10 @@ export default function Studio() {
     settings.bodies.includes(b.name as (typeof BODIES)[number]),
   );
   const asc = result
-    ? divisionalLongitude(result.lagna.longitude, settings.division)
+    ? divisionalLongitude(
+        result.lagna.longitudeExact ?? result.lagna.longitude,
+        settings.division,
+      )
     : 0;
   const active = bodies.find((b) => b.name === selected);
   const cells = Array.from({ length: 12 }, (_, i) => ({
@@ -813,6 +820,12 @@ export default function Studio() {
             </section>
           )}
         </>
+      )}
+      {result && (
+        <DashaBrowser
+          key={`${result.native.utcTime}-${result.tradition.ayanamsa}-${result.vimshottari.convention.yearDays}`}
+          result={result}
+        />
       )}
       {referenceOpen && (
         <StudioReference
