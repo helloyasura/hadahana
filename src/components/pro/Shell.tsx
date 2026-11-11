@@ -26,6 +26,7 @@ export default function Shell({
         <nav className="pro-nav" aria-label="Pro navigation">
           {[
             ["dashboard", "දළ විශ්ලේෂණය", "/pro"],
+            ["studio", "දෘශ්‍ය වැඩබිම", "/pro/studio"],
             ["presets", "ගණනය කිරීමේ ක්‍රම", "/pro/presets"],
             ["links", "සබැඳි", "/pro/links"],
           ].map(([key, label, url]) => (

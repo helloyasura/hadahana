@@ -15,8 +15,10 @@ import {
   ProError,
 } from "@/lib/pro/store";
 import { calculationConfigSchema } from "@/lib/astrology/config";
+import { studioSettingsSchema } from "@/lib/pro/studio";
 export const runtime = "nodejs";
 const bodySchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("studio"), settings: studioSettingsSchema }),
   z.object({
     action: z.literal("profile"),
     displayName: z.string().trim().min(2).max(100),
@@ -34,6 +36,7 @@ const bodySchema = z.discriminatedUnion("action", [
     action: z.literal("preset"),
     name: z.string().trim().min(2).max(100),
     config: calculationConfigSchema,
+    studio: studioSettingsSchema.optional(),
   }),
   z.object({
     action: z.literal("link"),
@@ -66,6 +69,7 @@ export async function GET(req: Request) {
             contact: owner.contact,
             logo: owner.logo,
           },
+          studio: owner.studio ?? studioSettingsSchema.parse({}),
           presets: db.presets.filter((p) => p.ownerId === owner.id),
           links: db.links
             .filter((l) => l.ownerId === owner.id)
@@ -102,16 +106,15 @@ export async function POST(req: Request) {
       await requireLicense(owner.subject);
     return response(
       await transaction((db) => {
-        if (body.action === "profile") {
-          Object.assign(
-            db.accounts.find((a) => a.id === owner.id)!,
-            {
-              displayName: body.displayName,
-              qualifications: body.qualifications,
-              contact: body.contact,
-              logo: body.logo,
-            },
-          );
+        if (body.action === "studio") {
+          db.accounts.find((a) => a.id === owner.id)!.studio = body.settings;
+        } else if (body.action === "profile") {
+          Object.assign(db.accounts.find((a) => a.id === owner.id)!, {
+            displayName: body.displayName,
+            qualifications: body.qualifications,
+            contact: body.contact,
+            logo: body.logo,
+          });
         } else if (body.action === "preset") {
           const presets = db.presets.filter((p) => p.ownerId === owner.id);
           if (presets.length >= 50)
@@ -129,6 +132,9 @@ export async function POST(req: Request) {
             name: body.name,
             version,
             config: body.config,
+            ...(body.studio
+              ? { studio: { ...body.studio, calculation: body.config } }
+              : {}),
             createdAt: Date.now(),
           });
         } else if (body.action === "link") {

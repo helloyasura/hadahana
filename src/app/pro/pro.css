@@ -688,3 +688,340 @@
     order: 2;
   }
 }
+
+/* Jyotisha Studio: a precise instrument, with a calm and responsive work surface. */
+.studio-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.studio-actions kbd {
+  color: var(--p-muted);
+  font-size: 10px;
+  margin-left: 8px;
+}
+.studio-clock {
+  margin-bottom: 24px;
+}
+.studio-inputs {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.9fr 0.9fr 1.3fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+.studio-scrubber {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 12px;
+}
+.studio-scrubber label {
+  flex: 1;
+  margin: 0;
+}
+.pro-app input[type="range"] {
+  padding: 0;
+  min-height: 24px;
+  accent-color: var(--p-cyan);
+  width: 100%;
+}
+.studio-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.studio-grid > * {
+  min-width: 0;
+}
+.studio-chart-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.studio-chart-heading h2 {
+  margin-bottom: 12px;
+}
+.studio-canvas {
+  position: relative;
+  overflow: hidden;
+}
+.studio-chart-stage {
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+  margin: 20px 0;
+}
+.studio-chart-stage .si-chart {
+  width: 100%;
+}
+.studio-wheel {
+  display: block;
+  width: 100%;
+  max-width: 660px;
+  overflow: visible;
+}
+.studio-nak-label {
+  font-size: 9px;
+  fill: #bbd0db;
+}
+.studio-sign-label {
+  font-size: 12px;
+  fill: #f0c787;
+}
+.studio-house-label {
+  font-size: 10px;
+  fill: #94b0c4;
+}
+.studio-center {
+  font-size: 26px;
+  font-family: var(--font-display), sans-serif;
+  fill: var(--p-cyan);
+}
+.studio-planet {
+  transition: transform 0.65s ease;
+  cursor: pointer;
+  outline: none;
+}
+.studio-planet circle {
+  fill: #173447;
+  stroke: #7de5db;
+  stroke-width: 1;
+  transition: fill 0.3s;
+}
+.studio-planet text {
+  fill: #ecf5fa;
+  font:
+    10px var(--font-display),
+    sans-serif;
+  pointer-events: none;
+}
+.studio-planet.is-selected circle,
+.studio-planet:focus circle {
+  fill: #765432;
+  stroke: #ffce88;
+  stroke-width: 2;
+}
+.studio-selection {
+  padding: 14px 16px;
+  border: 1px solid #486571;
+  background: #102636;
+  border-radius: 12px;
+  color: #deeff4;
+  min-height: 78px;
+  font-size: 13px;
+}
+.studio-change {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border: 2px solid #7de5db;
+  border-radius: inherit;
+  animation: studio-flash 0.9s ease forwards;
+}
+@keyframes studio-flash {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.studio-check {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 !important;
+  font-size: 12px !important;
+}
+.pro-app .studio-check input {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
+  accent-color: var(--p-cyan);
+}
+.studio-bodies {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  margin: 16px 0;
+  padding: 12px;
+}
+.studio-bodies legend {
+  color: var(--p-muted);
+  padding: 0 6px;
+  font-size: 12px;
+}
+.studio-controls details {
+  margin-top: 20px;
+  border-top: 1px solid var(--p-line);
+  padding-top: 16px;
+}
+.studio-controls summary,
+.studio-dasha summary {
+  cursor: pointer;
+  color: var(--p-cyan);
+}
+.studio-worksheet {
+  margin-top: 24px;
+}
+.studio-row-selected {
+  background: #20414d !important;
+}
+.studio-notes {
+  white-space: pre-wrap;
+  border-left: 2px solid var(--p-cyan);
+  padding: 12px 18px;
+}
+.studio-reference-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #030915c9;
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+}
+.studio-reference {
+  width: 620px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  box-shadow: 0 20px 100px #0008;
+}
+.studio-ref-results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-height: 370px;
+  overflow: auto;
+  margin: 16px 0;
+}
+.studio-ref-results article {
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  padding: 14px;
+}
+.studio-ref-results h3 {
+  margin: 4px 0;
+  font-size: 15px;
+}
+.studio-ref-results p {
+  font-size: 12px;
+  color: var(--p-muted);
+  margin: 0;
+}
+.studio-dasha ol {
+  padding: 0;
+  list-style: none;
+}
+.studio-dasha li {
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 12px;
+  border-bottom: 1px solid var(--p-line);
+}
+.studio-dasha li span {
+  color: var(--p-muted);
+  font-size: 12px;
+}
+@media (max-width: 1000px) {
+  .studio-grid {
+    grid-template-columns: 1fr;
+  }
+  .studio-inputs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .studio-inputs {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .studio-inputs label:last-child {
+    grid-column: 1/-1;
+  }
+  .studio-scrubber {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .studio-scrubber label {
+    min-width: 150px;
+  }
+  .studio-chart-stage {
+    min-height: 240px;
+    margin: 12px -12px;
+  }
+  .studio-reference-backdrop {
+    padding: 8px;
+  }
+  .studio-ref-results {
+    grid-template-columns: 1fr;
+  }
+  .studio-selection {
+    font-size: 12px;
+  }
+  .studio-grid {
+    gap: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-planet {
+    transition: none;
+  }
+  .studio-change {
+    animation: none;
+    opacity: 0;
+  }
+}
+@media print {
+  .pro-header,
+  .pro-nav,
+  .pro-footer,
+  .pro-page-title,
+  .studio-clock,
+  .studio-controls,
+  .studio-no-print,
+  .studio-reference-backdrop,
+  .pro-notice,
+  .studio-canvas .studio-actions {
+    display: none !important;
+  }
+  .pro-app {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .pro-shell {
+    padding: 0;
+    max-width: none;
+  }
+  .studio-grid {
+    display: block;
+  }
+  .studio-canvas {
+    max-width: 600px;
+    margin: auto;
+  }
+  .studio-worksheet {
+    break-before: page;
+  }
+  .studio-worksheet,
+  .studio-worksheet * {
+    color: black !important;
+    background: white !important;
+  }
+  .studio-worksheet table {
+    width: 100%;
+    font-size: 11px;
+  }
+  .studio-worksheet tr {
+    break-inside: avoid;
+  }
+}
