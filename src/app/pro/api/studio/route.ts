@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     await requireLicense(owner.subject);
     // Reuse the installed engine, including its configured true-node correction.
     // Birth inputs/results are not persisted, logged, or exposed through public links.
-    const result = await castKendraya(body.input, body.config);
+    const result = await castKendraya(body.input, body.config, { precise: true });
     validateResolvedCivilTime(
       body.input.date,
       body.input.time,

@@ -235,7 +235,7 @@ try {
   );
   assert.equal(await page.locator(".studio-planet").count(), 10);
   assert.equal(await page.locator(".studio-nak-label").count(), 27);
-  assert.equal(await page.locator(".studio-worksheet tbody tr").count(), 10);
+  assert.equal(await page.locator(".studio-worksheet:not(.studio-dasha-browser) tbody tr").count(), 10);
   await page.getByRole("button", { name: /Live/ }).click();
   await page.getByLabel("දිනය / Date", { exact: true }).fill("2000-01-01");
   await page.getByLabel("වේලාව / Time", { exact: true }).fill("12:00");
@@ -362,6 +362,9 @@ try {
     });
     await page.keyboard.press("Escape");
     assert.equal(await page.getByRole("dialog").count(), 0);
+    await page.getByLabel("Dasha date jump").fill("2001-01-01");
+    assert.equal(await page.locator(".studio-dasha-browser tbody .studio-row-selected").count(), 1);
+    await page.locator(".studio-dasha-browser").screenshot({path:path.join(shots,`pro-v2-dasha-${label}.png`)});
   }
   await page
     .getByRole("button", { name: "◎ රාශි චක්‍රය", exact: true })
