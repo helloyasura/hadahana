@@ -13,7 +13,7 @@
     "verify:agent": "tsx scripts/verify-agent.mts",
     "verify:names": "npx tsx scripts/verify-names.mts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/verify-name-quality.mts && tsx scripts/verify-name-catalogue.mts && tsx scripts/verify-dosha-periods.mts && tsx scripts/verify-birth-timing.mts && tsx scripts/verify-asiri.mts && tsx scripts/verify-factor-align.mts && tsx scripts/verify-feedback.mts && tsx scripts/verify-nakath-finder.mts && tsx scripts/verify-names.mts && tsx --test scripts/verify-analytics.mts && npm run test:pro",
+    "test": "tsx scripts/verify-name-quality.mts && tsx scripts/verify-name-catalogue.mts && tsx scripts/verify-dosha-periods.mts && tsx scripts/verify-birth-timing.mts && tsx scripts/verify-asiri.mts && tsx scripts/verify-factor-align.mts && tsx scripts/verify-feedback.mts && tsx scripts/verify-nakath-finder.mts && tsx scripts/verify-names.mts && tsx --test scripts/verify-analytics.mts && npm run test:pro && tsx scripts/verify-pdf-timeouts.mts",
     "test:ui": "node scripts/ui-redesign.mjs",
     "test:account": "tsx scripts/verify-account.mts",
     "test:profile": "node scripts/verify-profile-flow.mjs",
@@ -24,7 +24,8 @@
     "test:pro:ui": "node scripts/verify-pro-flow.mjs",
     "test:panchanga": "tsx scripts/verify-panchanga.mts",
     "test:panchanga:ui": "node scripts/verify-panchanga-flow.mjs",
-    "test:pro:studio:ui": "node scripts/verify-pro-studio-flow.mjs"
+    "test:pro:studio:ui": "node scripts/verify-pro-studio-flow.mjs",
+    "test:pdf:timeouts": "tsx scripts/verify-pdf-timeouts.mts"
   },
   "dependencies": {
     "@langchain/core": "^1.3.5",

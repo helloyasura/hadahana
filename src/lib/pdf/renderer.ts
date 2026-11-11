@@ -1,5 +1,6 @@
 import { chromium, type Browser } from "playwright-core";
 import { AccountError } from "../account/server";
+import { pdfTimeBudgets } from "./timeouts";
 // One Chromium at a time, no unbounded queue and no idle browser on the shared droplet.
 let busy = false;
 const waiting: { start: () => void; timer: ReturnType<typeof setTimeout> }[] = [];
@@ -27,13 +28,14 @@ export function admitPdf(user: string, now = Date.now()) {
 }
 export async function renderPdf(html: string) {
   await acquireRender();
+  const budgets = pdfTimeBudgets();
   let browser: Browser | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let expired = false;
   try {
     return await Promise.race([
       (async () => {
-        browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium-browser", headless: true, timeout: 10000,
+        browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || "/usr/bin/chromium-browser", headless: true, timeout: budgets.launchMs,
           args: ["--disable-dev-shm-usage", "--disable-gpu", "--renderer-process-limit=1", "--js-flags=--max-old-space-size=128", "--no-sandbox"] });
         if (expired) { await browser.close(); throw new Error("PDF timeout"); }
         const context = await browser.newContext({ javaScriptEnabled: false, serviceWorkers: "block", offline: true });
@@ -45,7 +47,7 @@ export async function renderPdf(html: string) {
         return await page.pdf({ preferCSSPageSize: true, printBackground: true, displayHeaderFooter: true,
           headerTemplate: '<div></div>', footerTemplate: '<div style="font:9px sans-serif;color:#526779;width:100%;text-align:center">HADAHANA · <span class="pageNumber"></span> / <span class="totalPages"></span></div>' });
       })(),
-      new Promise<never>((_, reject) => { timer = setTimeout(() => { expired = true; void browser?.close(); reject(new AccountError("PDF generation timed out. Please try again.", 503)); }, 25000); }),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => { expired = true; void browser?.close(); reject(new AccountError("PDF generation timed out. Please try again.", 503)); }, budgets.renderMs); }),
     ]);
   } finally {
     if (timer) clearTimeout(timer);

@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { BHAVA, GRAHA, RASHI } from "@/lib/astrology/sinhala-names";
 import { NEKATHA_TABLE } from "@/lib/astrology/nakath-akshara";
+import { referenceEntries } from "@/lib/pro/references";
+import { YOGA_DEFINITIONS } from "@/lib/pro/yogas";
 import { withBasePath } from "@/lib/base-path";
 import type { Preset } from "@/lib/pro/store";
 import type { ProChartResult } from "./Chart";
@@ -34,6 +36,14 @@ export default function StudioReference({
       dateStyle: "medium",
     }).format(new Date(utc));
   const entries = [
+    ...referenceEntries(),
+    ...YOGA_DEFINITIONS.map((y) => ({
+      id: `ref-yoga-${y.name}`,
+      title: y.name,
+      category: "යෝග / Yoga candidate",
+      text: y.rule,
+      select: "",
+    })),
     {
       id: "drishti",
       title: "පරාශර දෘෂ්ටි / Parashari aspects",
@@ -155,7 +165,8 @@ export default function StudioReference({
         </label>
         <p role="status" className="pro-small">
           {found.length} ප්‍රතිඵල · යොමු: පවතින Hadahana සම්ප්‍රදායික වගු.
-          ගණ/යෝනි/නාඩි හා මිත්‍රත්ව වගු තවම ඇතුළත් නැත.
+          Gana/Yoni හා seven-planet friendship ඇතුළත්ය; Deity/Nadi තවම තහවුරු කර
+          නැත.
         </p>
         <div className="studio-ref-results">
           {found.map((e) => (
