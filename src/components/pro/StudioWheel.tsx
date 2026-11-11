@@ -17,12 +17,14 @@ export function bodyDescription(body: StudioBody) {
 }
 export default function StudioWheel({
   bodies,
+  transits,
   asc,
   settings,
   selected,
   onSelect,
 }: {
   bodies: StudioBody[];
+  transits?: StudioBody[];
   asc: number;
   settings: StudioSettings;
   selected: string;
@@ -174,6 +176,27 @@ export default function StudioWheel({
       <text x="320" y="335" textAnchor="middle" className="studio-house-label">
         {settings.division === 1 ? "SIDEREAL SKY" : "NAVAMSA MAP"}
       </text>
+      {transits?.map((b) => {
+        const p = point(b.longitude, 216);
+        return (
+          <g
+            className="studio-transit-marker"
+            key={`transit-${b.name}`}
+            transform={`translate(${p.x} ${p.y})`}
+          >
+            <title>{`Gochara · ${bodyDescription(b)}`}</title>
+            <circle r="11" fill="#8c5434" stroke="#ffce88" />
+            <text
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#fff2db"
+              fontSize="8"
+            >
+              {b.name.slice(0, 2)}
+            </text>
+          </g>
+        );
+      })}
       {bodies.map((b, i) => {
         const p = point(b.longitude, 150 + (i % 3) * 24),
           tick = point(b.longitude, 235),
