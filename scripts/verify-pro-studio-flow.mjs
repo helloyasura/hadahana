@@ -394,6 +394,10 @@ try {
     await page
       .locator(".studio-dasha-browser")
       .screenshot({ path: path.join(shots, `pro-v2-dasha-${label}.png`) });
+    assert.equal(await page.locator(".studio-yoga-desk tbody tr").count(), 6);
+    await page
+      .locator(".studio-yoga-desk")
+      .screenshot({ path: path.join(shots, `pro-v2-yogas-${label}.png`) });
   }
   await page
     .getByRole("button", { name: "◎ රාශි චක්‍රය", exact: true })
