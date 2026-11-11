@@ -105,3 +105,13 @@ validate a chart. Shadbala requires multiple strength components/conventions and
 known reference outputs. Neither Shadbala nor Ashtakavarga scores are exposed until
 those fixtures and tolerances exist. Dignity flags/reference tables are **not**
 misrepresented as those strength calculations.
+
+## PR #26 CI cold-start fix
+The failing Panchanga job timed out while launching `/usr/bin/google-chrome`
+(before PDF contents/assertions ran): the production renderer's 10-second Chrome
+startup limit was too short on the cold shared GitHub runner. The non-production
+`CI=true` path now allows 30 seconds to launch and 60 seconds overall. Production
+always retains 10-second startup / 25-second total limits, even with `CI=true`.
+The one-browser concurrency cap, bounded queue, offline isolation, page deadlines,
+font/geometry/escaping/security assertions and process cleanup are unchanged.
+Policy tests explicitly cover production/CI combinations and finite deadlines.
