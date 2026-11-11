@@ -513,6 +513,21 @@ try {
     "2000-01-01",
   );
   assert.equal(await page.getByLabel("Divisional chart").inputValue(), "9");
+  await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
+  assert.equal(
+    await page
+      .locator(".case-document-viewport image")
+      .getAttribute("transform"),
+    "rotate(90 800 800)",
+  );
+  await page.getByLabel("Document zoom").fill("1.4");
+  assert.ok(
+    (await page.locator(".case-document-viewport svg").boundingBox()).width >
+      (await page.locator(".case-document-viewport").boundingBox()).width,
+  );
+  await page.getByLabel("Document zoom").fill("1");
+  for (let i = 0; i < 3; i++)
+    await page.getByRole("button", { name: "Rotate 90°", exact: true }).click();
   await page
     .getByLabel("Document Lagna", { exact: true })
     .selectOption(

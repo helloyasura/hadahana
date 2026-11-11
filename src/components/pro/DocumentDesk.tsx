@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import { useState } from "react";
 import type { Client } from "@/lib/pro/store";
 import { RASHIS } from "@/lib/pro/studio";
@@ -177,19 +176,28 @@ export default function DocumentDesk({
             </button>
           </div>
           <div className="case-document-viewport">
-            <Image
-              unoptimized
-              src={`data:image/png;base64,${document.pages[Math.min(page, document.pages.length - 1)]}`}
-              width={1600}
-              height={1600}
-              alt="Customer birth document — sanitized page"
+            <svg
+              viewBox="0 0 1600 1600"
+              role="img"
+              aria-label="Customer birth document — sanitized page"
               style={{
                 width: `${zoom * 100}%`,
                 height: "auto",
                 maxWidth: "none",
-                transform: `rotate(${rotation}deg)`,
+                display: "block",
               }}
-            />
+            >
+              <title>Sanitized birth document</title>
+              <image
+                href={`data:image/png;base64,${document.pages[Math.min(page, document.pages.length - 1)]}`}
+                x="0"
+                y="0"
+                width="1600"
+                height="1600"
+                preserveAspectRatio="xMidYMid meet"
+                transform={`rotate(${rotation} 800 800)`}
+              />
+            </svg>
           </div>
           <button
             className="pro-text-button"
